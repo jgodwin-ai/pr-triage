@@ -1,7 +1,9 @@
 import express from "express";
+import configRouter from "./routes/config.js";
 
 const app = express();
 app.use(express.json());
+app.use("/api/config", configRouter);
 
 const PORT = parseInt(process.env.PORT || "9000", 10);
 
