@@ -99,6 +99,13 @@ body {
   cursor: not-allowed;
 }
 
+.provider-badge {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #656d76;
+  text-align: center;
+}
+
 .status-bar {
   margin-top: 20px;
   padding: 12px 16px;

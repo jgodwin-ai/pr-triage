@@ -3,3 +3,5 @@ dist/
 .env
 .superpowers/
 *.log
+*.png
+.playwright-mcp/

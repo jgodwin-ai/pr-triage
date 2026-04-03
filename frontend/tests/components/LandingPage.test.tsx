@@ -29,7 +29,7 @@ describe("LandingPage", () => {
       startAnalysis: mockStartAnalysis,
     }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ anthropicKeyConfigured: true, githubTokenConfigured: true }),
+      json: () => Promise.resolve({ githubTokenConfigured: true, anthropicKeyConfigured: true, llmProvider: "claude-cli" }),
     }));
   });
 
@@ -46,7 +46,7 @@ describe("LandingPage", () => {
 
   it("fetches config status on mount", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ anthropicKeyConfigured: true, githubTokenConfigured: true }),
+      json: () => Promise.resolve({ githubTokenConfigured: true, anthropicKeyConfigured: true, llmProvider: "claude-cli" }),
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<LandingPage onAnalysisComplete={vi.fn()} />);
@@ -55,27 +55,24 @@ describe("LandingPage", () => {
     });
   });
 
-  it("shows API key fields when keys not configured", async () => {
+  it("shows GitHub token field when not configured", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ anthropicKeyConfigured: false, githubTokenConfigured: false }),
+      json: () => Promise.resolve({ githubTokenConfigured: false, anthropicKeyConfigured: false, llmProvider: "claude-cli" }),
     }));
     render(<LandingPage onAnalysisComplete={vi.fn()} />);
     await waitFor(() => {
-      expect(screen.getByPlaceholderText("Anthropic API Key")).toBeTruthy();
       expect(screen.getByPlaceholderText("GitHub Token")).toBeTruthy();
     });
   });
 
-  it("hides API key fields when keys configured", async () => {
+  it("hides GitHub token field when configured", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      json: () => Promise.resolve({ anthropicKeyConfigured: true, githubTokenConfigured: true }),
+      json: () => Promise.resolve({ githubTokenConfigured: true, anthropicKeyConfigured: false, llmProvider: "claude-cli" }),
     }));
     render(<LandingPage onAnalysisComplete={vi.fn()} />);
     await waitFor(() => {
-      // config is loaded
       expect(screen.getByText("Analyze PR")).toBeTruthy();
     });
-    expect(screen.queryByPlaceholderText("Anthropic API Key")).toBeNull();
     expect(screen.queryByPlaceholderText("GitHub Token")).toBeNull();
   });
 

@@ -8,12 +8,9 @@ interface Props {
 
 export default function LandingPage({ onAnalysisComplete }: Props) {
   const [prUrl, setPrUrl] = useState("");
-  const [anthropicKey, setAnthropicKey] = useState("");
   const [githubToken, setGithubToken] = useState("");
-  const [keysConfigured, setKeysConfigured] = useState<{
-    anthropic: boolean;
-    github: boolean;
-  } | null>(null);
+  const [githubTokenConfigured, setGithubTokenConfigured] = useState<boolean | null>(null);
+  const [llmProvider, setLlmProvider] = useState<string | null>(null);
 
   const { stage, progress, error, startAnalysis } = useAnalysis(onAnalysisComplete);
 
@@ -21,13 +18,12 @@ export default function LandingPage({ onAnalysisComplete }: Props) {
     fetch("/api/config/status")
       .then((res) => res.json())
       .then((data) => {
-        setKeysConfigured({
-          anthropic: data.anthropicKeyConfigured,
-          github: data.githubTokenConfigured,
-        });
+        setGithubTokenConfigured(data.githubTokenConfigured);
+        setLlmProvider(data.llmProvider);
       })
       .catch(() => {
-        setKeysConfigured({ anthropic: false, github: false });
+        setGithubTokenConfigured(false);
+        setLlmProvider("claude-cli");
       });
   }, []);
 
@@ -35,8 +31,8 @@ export default function LandingPage({ onAnalysisComplete }: Props) {
     e.preventDefault();
     startAnalysis(
       prUrl,
-      keysConfigured?.anthropic ? undefined : anthropicKey,
-      keysConfigured?.github ? undefined : githubToken
+      undefined, // anthropicApiKey — not needed with CLI
+      githubTokenConfigured ? undefined : githubToken
     );
   };
 
@@ -59,19 +55,7 @@ export default function LandingPage({ onAnalysisComplete }: Props) {
             disabled={isLoading}
           />
 
-          {keysConfigured && !keysConfigured.anthropic && (
-            <input
-              className="form-input"
-              type="password"
-              placeholder="Anthropic API Key"
-              value={anthropicKey}
-              onChange={(e) => setAnthropicKey(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-          )}
-
-          {keysConfigured && !keysConfigured.github && (
+          {githubTokenConfigured === false && (
             <input
               className="form-input"
               type="password"
@@ -87,6 +71,12 @@ export default function LandingPage({ onAnalysisComplete }: Props) {
             {isLoading ? "Analyzing..." : "Analyze PR"}
           </button>
         </form>
+
+        {llmProvider && (
+          <p className="provider-badge">
+            Using {llmProvider === "claude-cli" ? "Claude Code CLI" : "Anthropic API"}
+          </p>
+        )}
 
         {stage && stage !== "error" && stage !== "complete" && (
           <div className="status-bar">
