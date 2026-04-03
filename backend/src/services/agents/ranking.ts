@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ChangeCluster, PRMetadata } from "../../types.js";
+import { extractJSON, getResponseText } from "./extract-json.js";
 
 interface RankingResult {
   executiveSummary: string;
@@ -61,21 +62,24 @@ export async function rankAndSynthesize(
     ],
   });
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const parsed = JSON.parse(text);
+  const text = getResponseText(response);
+  const parsed = extractJSON(text) as any;
 
   const clusterMap = new Map(clusters.map((c) => [c.id, c]));
 
-  const updatedClusters = parsed.clusterUpdates.map(
-    (update: { id: string; priority: number; tag: string }) => {
-      const original = clusterMap.get(update.id)!;
-      return {
-        ...original,
-        priority: update.priority,
-        tag: update.tag as ChangeCluster["tag"],
-      };
+  const updatedClusters: ChangeCluster[] = [];
+  for (const update of parsed.clusterUpdates) {
+    const original = clusterMap.get(update.id);
+    if (!original) {
+      console.warn(`Ranking agent returned unknown cluster ID: ${update.id}, skipping`);
+      continue;
     }
-  );
+    updatedClusters.push({
+      ...original,
+      priority: update.priority,
+      tag: update.tag as ChangeCluster["tag"],
+    });
+  }
 
   updatedClusters.sort((a: ChangeCluster, b: ChangeCluster) => a.priority - b.priority);
 

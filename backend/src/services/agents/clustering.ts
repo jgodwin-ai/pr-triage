@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { FileAnalysis, ChangeCluster } from "../../types.js";
+import { extractJSON, getResponseText } from "./extract-json.js";
 
 export function buildClusteringPrompt(files: FileAnalysis[]): string {
   const fileSummaries = files
@@ -51,8 +52,8 @@ export async function clusterFiles(
     ],
   });
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const parsed = JSON.parse(text);
+  const text = getResponseText(response);
+  const parsed = extractJSON(text) as any;
 
   const filesByPath = new Map(files.map((f) => [f.path, f]));
 

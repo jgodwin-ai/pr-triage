@@ -29,41 +29,59 @@ export async function runPipeline(
   const { metadata, files } = prData;
   const { analyzeFile, clusterFiles, rankAndSynthesize, onMessage } = deps;
 
-  // Stage 1: File analysis (parallel)
-  onMessage({ type: "status", stage: "file-analysis", progress: `0/${files.length} files` });
+  if (files.length === 0) {
+    const analysis: PRAnalysis = {
+      id: uuidv4(),
+      pr: metadata,
+      executiveSummary: "This PR has no analyzable file changes.",
+      clusters: [],
+      timeSaved: "N/A",
+    };
+    onMessage({ type: "complete", analysis });
+    return analysis;
+  }
 
-  let completed = 0;
-  const fileAnalyses = await Promise.all(
-    files.map(async (file) => {
-      const result = await analyzeFile(file);
-      completed++;
-      onMessage({
-        type: "status",
-        stage: "file-analysis",
-        progress: `${completed}/${files.length} files`,
-      });
-      return result;
-    })
-  );
+  try {
+    // Stage 1: File analysis (parallel)
+    onMessage({ type: "status", stage: "file-analysis", progress: `0/${files.length} files` });
 
-  // Stage 2: Clustering
-  onMessage({ type: "status", stage: "clustering", progress: "grouping changes" });
-  const clusters = await clusterFiles(fileAnalyses);
-  onMessage({ type: "partial", clusters });
+    let completed = 0;
+    const fileAnalyses = await Promise.all(
+      files.map(async (file) => {
+        const result = await analyzeFile(file);
+        completed++;
+        onMessage({
+          type: "status",
+          stage: "file-analysis",
+          progress: `${completed}/${files.length} files`,
+        });
+        return result;
+      })
+    );
 
-  // Stage 3: Ranking & synthesis
-  onMessage({ type: "status", stage: "ranking", progress: "ranking clusters" });
-  const ranked = await rankAndSynthesize(metadata, clusters);
+    // Stage 2: Clustering
+    onMessage({ type: "status", stage: "clustering", progress: "grouping changes" });
+    const clusters = await clusterFiles(fileAnalyses);
+    onMessage({ type: "partial", clusters });
 
-  const analysis: PRAnalysis = {
-    id: uuidv4(),
-    pr: metadata,
-    executiveSummary: ranked.executiveSummary,
-    clusters: ranked.clusters,
-    timeSaved: ranked.timeSaved,
-  };
+    // Stage 3: Ranking & synthesis
+    onMessage({ type: "status", stage: "ranking", progress: "ranking clusters" });
+    const ranked = await rankAndSynthesize(metadata, clusters);
 
-  onMessage({ type: "complete", analysis });
+    const analysis: PRAnalysis = {
+      id: uuidv4(),
+      pr: metadata,
+      executiveSummary: ranked.executiveSummary,
+      clusters: ranked.clusters,
+      timeSaved: ranked.timeSaved,
+    };
 
-  return analysis;
+    onMessage({ type: "complete", analysis });
+
+    return analysis;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown pipeline error";
+    onMessage({ type: "error", stage: "error", error: message });
+    throw err;
+  }
 }

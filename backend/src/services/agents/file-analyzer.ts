@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { FileAnalysis } from "../../types.js";
+import { extractJSON, getResponseText } from "./extract-json.js";
 
 export function buildFileAnalyzerPrompt(filename: string, patch: string): string {
   return `Analyze this file diff from a pull request.
@@ -48,8 +49,8 @@ export async function analyzeFile(
     ],
   });
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const parsed = JSON.parse(text);
+  const text = getResponseText(response);
+  const parsed = extractJSON(text) as any;
 
   return {
     path: parsed.path,

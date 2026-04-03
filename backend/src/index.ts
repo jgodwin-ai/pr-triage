@@ -52,7 +52,9 @@ app.locals.startPipeline = async (
 
     setAnalysis(analysisId, analysis);
   } catch (err: any) {
-    broadcast(wss, { type: "error", error: err.message });
+    const message = err instanceof Error ? err.message : String(err);
+    broadcast(wss, { type: "error", error: message });
+    setAnalysis(analysisId, { status: "error", error: message });
   }
 };
 

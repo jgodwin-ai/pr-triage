@@ -6,13 +6,13 @@ import { v4 as uuidv4 } from "uuid";
 const router = Router();
 
 // In-memory store for analysis results
-const analyses = new Map<string, PRAnalysis | { status: "running" }>();
+const analyses = new Map<string, PRAnalysis | { status: "running" } | { status: "error"; error: string }>();
 
-export function getAnalysis(id: string): PRAnalysis | { status: "running" } | undefined {
+export function getAnalysis(id: string): PRAnalysis | { status: "running" } | { status: "error"; error: string } | undefined {
   return analyses.get(id);
 }
 
-export function setAnalysis(id: string, value: PRAnalysis | { status: "running" }): void {
+export function setAnalysis(id: string, value: PRAnalysis | { status: "running" } | { status: "error"; error: string }): void {
   analyses.set(id, value);
 }
 
