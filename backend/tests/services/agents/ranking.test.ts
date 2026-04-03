@@ -77,4 +77,101 @@ describe("rankAndSynthesize", () => {
     expect(result.clusters[0].id).toBe("auth");
     expect(result.clusters[0].priority).toBe(1);
   });
+
+  it("skips unknown cluster IDs without crashing", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                executiveSummary: "Summary",
+                timeSaved: "~10 min",
+                clusterUpdates: [
+                  { id: "auth", priority: 1, tag: "needs-review" },
+                  { id: "unknown-cluster", priority: 2, tag: "low-risk" },
+                ],
+              }),
+            },
+          ],
+        }),
+      },
+    };
+
+    const result = await rankAndSynthesize(sampleMetadata, sampleClusters, mockClient as any);
+    expect(result.clusters).toHaveLength(1);
+    expect(result.clusters[0].id).toBe("auth");
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("unknown cluster ID: unknown-cluster")
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("returns fewer clusters when Claude returns fewer clusterUpdates", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                executiveSummary: "Only auth matters",
+                timeSaved: "~5 min",
+                clusterUpdates: [
+                  { id: "auth", priority: 1, tag: "needs-review" },
+                ],
+              }),
+            },
+          ],
+        }),
+      },
+    };
+
+    const result = await rankAndSynthesize(sampleMetadata, sampleClusters, mockClient as any);
+    expect(result.clusters).toHaveLength(1);
+  });
+
+  it("throws when Claude returns invalid JSON", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: "text", text: "Here is my ranking..." }],
+        }),
+      },
+    };
+
+    await expect(
+      rankAndSynthesize(sampleMetadata, sampleClusters, mockClient as any)
+    ).rejects.toThrow("Failed to parse Claude response as JSON");
+  });
+
+  it("sorts clusters by priority correctly", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                executiveSummary: "Review docs first",
+                timeSaved: "~8 min",
+                clusterUpdates: [
+                  { id: "docs", priority: 1, tag: "needs-review" },
+                  { id: "auth", priority: 3, tag: "low-risk" },
+                ],
+              }),
+            },
+          ],
+        }),
+      },
+    };
+
+    const result = await rankAndSynthesize(sampleMetadata, sampleClusters, mockClient as any);
+    expect(result.clusters[0].id).toBe("docs");
+    expect(result.clusters[0].priority).toBe(1);
+    expect(result.clusters[1].id).toBe("auth");
+    expect(result.clusters[1].priority).toBe(3);
+  });
 });

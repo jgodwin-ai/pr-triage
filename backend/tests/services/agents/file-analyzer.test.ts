@@ -45,4 +45,73 @@ describe("analyzeFile", () => {
 
     expect(mockClient.messages.create).toHaveBeenCalledOnce();
   });
+
+  it("handles markdown-wrapped JSON from Claude", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [
+            {
+              type: "text",
+              text: '```json\n' + JSON.stringify({
+                path: "src/utils.ts",
+                summary: "Adds utility helpers",
+                category: "logic",
+                impactScore: 2,
+                annotations: [],
+              }) + '\n```',
+            },
+          ],
+        }),
+      },
+    };
+
+    const result = await analyzeFile(
+      { filename: "src/utils.ts", patch: "@@ diff @@" },
+      mockClient as any
+    );
+
+    expect(result.path).toBe("src/utils.ts");
+    expect(result.category).toBe("logic");
+  });
+
+  it("throws when Claude returns empty content array", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({ content: [] }),
+      },
+    };
+
+    await expect(
+      analyzeFile({ filename: "a.ts", patch: "diff" }, mockClient as any)
+    ).rejects.toThrow("empty response content");
+  });
+
+  it("throws when Claude returns non-text block", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: "tool_use", id: "t1", name: "fn", input: {} }],
+        }),
+      },
+    };
+
+    await expect(
+      analyzeFile({ filename: "a.ts", patch: "diff" }, mockClient as any)
+    ).rejects.toThrow("non-text content block");
+  });
+
+  it("throws descriptive error when Claude returns invalid JSON", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: "text", text: "Sure! Here is the analysis..." }],
+        }),
+      },
+    };
+
+    await expect(
+      analyzeFile({ filename: "a.ts", patch: "diff" }, mockClient as any)
+    ).rejects.toThrow("Failed to parse Claude response as JSON");
+  });
 });

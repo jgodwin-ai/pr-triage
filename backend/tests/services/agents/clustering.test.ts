@@ -80,4 +80,67 @@ describe("clusterFiles", () => {
     expect(result[0].files[0].path).toBe("src/auth/login.ts");
     expect(result[1].files).toHaveLength(1);
   });
+
+  it("drops filePaths that don't match any input file", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                clusters: [
+                  {
+                    id: "cluster-1",
+                    name: "Mixed cluster",
+                    summary: "Has known and unknown files",
+                    tag: "needs-review",
+                    priority: 1,
+                    filePaths: ["src/auth/login.ts", "nonexistent/file.ts"],
+                  },
+                ],
+              }),
+            },
+          ],
+        }),
+      },
+    };
+
+    const result = await clusterFiles(sampleFiles, mockClient as any);
+    expect(result).toHaveLength(1);
+    expect(result[0].files).toHaveLength(1);
+    expect(result[0].files[0].path).toBe("src/auth/login.ts");
+  });
+
+  it("returns empty array when Claude returns empty clusters", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ clusters: [] }),
+            },
+          ],
+        }),
+      },
+    };
+
+    const result = await clusterFiles(sampleFiles, mockClient as any);
+    expect(result).toHaveLength(0);
+  });
+
+  it("throws when Claude returns invalid JSON", async () => {
+    const mockClient = {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: "text", text: "I'll group these files..." }],
+        }),
+      },
+    };
+
+    await expect(clusterFiles(sampleFiles, mockClient as any)).rejects.toThrow(
+      "Failed to parse Claude response as JSON"
+    );
+  });
 });

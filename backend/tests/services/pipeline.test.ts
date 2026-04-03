@@ -74,4 +74,111 @@ describe("runPipeline", () => {
     expect(stages).toContain("clustering");
     expect(stages).toContain("ranking");
   });
+
+  it("returns early with empty-PR analysis when files is empty", async () => {
+    const messages: any[] = [];
+    const onMessage = (msg: any) => messages.push(msg);
+
+    const result = await runPipeline(
+      { metadata: mockMetadata, files: [] },
+      {
+        analyzeFile: vi.fn(),
+        clusterFiles: vi.fn(),
+        rankAndSynthesize: vi.fn(),
+        onMessage,
+      }
+    );
+
+    expect(result.executiveSummary).toBe("This PR has no analyzable file changes.");
+    expect(result.clusters).toHaveLength(0);
+    expect(result.timeSaved).toBe("N/A");
+    expect(messages).toHaveLength(1);
+    expect(messages[0].type).toBe("complete");
+  });
+
+  it("sends error WSMessage and re-throws when analyzeFile throws", async () => {
+    const messages: any[] = [];
+    const onMessage = (msg: any) => messages.push(msg);
+
+    const deps = {
+      analyzeFile: vi.fn().mockRejectedValue(new Error("Claude API timeout")),
+      clusterFiles: vi.fn(),
+      rankAndSynthesize: vi.fn(),
+      onMessage,
+    };
+
+    await expect(
+      runPipeline({ metadata: mockMetadata, files: mockFiles }, deps)
+    ).rejects.toThrow("Claude API timeout");
+
+    const errorMsg = messages.find((m) => m.type === "error");
+    expect(errorMsg).toBeDefined();
+    expect(errorMsg.error).toBe("Claude API timeout");
+  });
+
+  it("sends error WSMessage when clusterFiles throws", async () => {
+    const messages: any[] = [];
+    const onMessage = (msg: any) => messages.push(msg);
+
+    const deps = {
+      analyzeFile: vi.fn().mockResolvedValue(mockFileAnalysis),
+      clusterFiles: vi.fn().mockRejectedValue(new Error("Clustering failed")),
+      rankAndSynthesize: vi.fn(),
+      onMessage,
+    };
+
+    await expect(
+      runPipeline({ metadata: mockMetadata, files: mockFiles }, deps)
+    ).rejects.toThrow("Clustering failed");
+
+    const errorMsg = messages.find((m) => m.type === "error");
+    expect(errorMsg).toBeDefined();
+    expect(errorMsg.error).toBe("Clustering failed");
+  });
+
+  it("sends error WSMessage when rankAndSynthesize throws", async () => {
+    const messages: any[] = [];
+    const onMessage = (msg: any) => messages.push(msg);
+
+    const deps = {
+      analyzeFile: vi.fn().mockResolvedValue(mockFileAnalysis),
+      clusterFiles: vi.fn().mockResolvedValue([mockCluster]),
+      rankAndSynthesize: vi.fn().mockRejectedValue(new Error("Ranking exploded")),
+      onMessage,
+    };
+
+    await expect(
+      runPipeline({ metadata: mockMetadata, files: mockFiles }, deps)
+    ).rejects.toThrow("Ranking exploded");
+
+    const errorMsg = messages.find((m) => m.type === "error");
+    expect(errorMsg.error).toBe("Ranking exploded");
+  });
+
+  it("complete message contains the final analysis", async () => {
+    const messages: any[] = [];
+    const onMessage = (msg: any) => messages.push(msg);
+
+    const deps = {
+      analyzeFile: vi.fn().mockResolvedValue(mockFileAnalysis),
+      clusterFiles: vi.fn().mockResolvedValue([mockCluster]),
+      rankAndSynthesize: vi.fn().mockResolvedValue({
+        executiveSummary: "Final summary",
+        timeSaved: "~10 min",
+        clusters: [mockCluster],
+      }),
+      onMessage,
+    };
+
+    const result = await runPipeline(
+      { metadata: mockMetadata, files: mockFiles },
+      deps
+    );
+
+    const completeMsg = messages.find((m) => m.type === "complete");
+    expect(completeMsg).toBeDefined();
+    expect(completeMsg.analysis).toBeDefined();
+    expect(completeMsg.analysis.id).toBe(result.id);
+    expect(completeMsg.analysis.executiveSummary).toBe("Final summary");
+  });
 });
