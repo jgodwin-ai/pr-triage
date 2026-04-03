@@ -19,7 +19,15 @@ export default function ClusterList({ clusters, onSelectCluster }: Props) {
       {clusters.map((cluster) => (
         <div
           key={cluster.id}
+          role="button"
+          tabIndex={0}
           onClick={() => onSelectCluster(cluster)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectCluster(cluster);
+            }
+          }}
           style={{
             border: "1px solid #ddd",
             borderRadius: 4,

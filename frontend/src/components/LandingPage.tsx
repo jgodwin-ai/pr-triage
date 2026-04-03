@@ -3,11 +3,10 @@ import type { PRAnalysis } from "../types.js";
 import { useAnalysis } from "../hooks/useAnalysis.js";
 
 interface Props {
-  onAnalysisStarted: (id: string) => void;
   onAnalysisComplete: (analysis: PRAnalysis) => void;
 }
 
-export default function LandingPage({ onAnalysisStarted, onAnalysisComplete }: Props) {
+export default function LandingPage({ onAnalysisComplete }: Props) {
   const [prUrl, setPrUrl] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
   const [githubToken, setGithubToken] = useState("");

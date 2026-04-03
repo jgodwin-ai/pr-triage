@@ -70,20 +70,31 @@ export function useAnalysis(onComplete: (analysis: PRAnalysis) => void) {
         error: null,
       });
 
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prUrl, anthropicApiKey, githubToken }),
-      });
+      try {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prUrl, anthropicApiKey, githubToken }),
+        });
 
-      if (!res.ok) {
-        const body = await res.json();
-        setState((prev) => ({ ...prev, stage: "error", error: body.error }));
-        return;
+        if (!res.ok) {
+          let errorMsg = `Request failed with status ${res.status}`;
+          try {
+            const body = await res.json();
+            errorMsg = body.error || errorMsg;
+          } catch {
+            // Response wasn't JSON
+          }
+          setState((prev) => ({ ...prev, stage: "error", error: errorMsg }));
+          return;
+        }
+
+        const { analysisId } = await res.json();
+        setAnalysisId(analysisId);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Network error";
+        setState((prev) => ({ ...prev, stage: "error", error: message }));
       }
-
-      const { analysisId } = await res.json();
-      setAnalysisId(analysisId);
     },
     []
   );

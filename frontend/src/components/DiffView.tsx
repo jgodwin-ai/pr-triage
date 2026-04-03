@@ -51,8 +51,13 @@ export default function DiffView({ file }: Props) {
       >
         {lines.map((line, i) => {
           let bg = "transparent";
-          if (line.startsWith("+")) bg = "#e6ffec";
-          else if (line.startsWith("-")) bg = "#ffebe9";
+          if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) {
+            bg = "transparent"; // diff headers — don't color
+          } else if (line.startsWith("+")) {
+            bg = "#e6ffec";
+          } else if (line.startsWith("-")) {
+            bg = "#ffebe9";
+          }
           return (
             <div key={i} style={{ background: bg }}>
               {line}

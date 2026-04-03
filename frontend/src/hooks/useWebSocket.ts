@@ -23,8 +23,12 @@ export function useWebSocket({ onMessage, enabled = true }: UseWebSocketOptions)
     ws.onopen = () => setConnected(true);
 
     ws.onmessage = (event) => {
-      const msg: WSMessage = JSON.parse(event.data);
-      onMessageRef.current(msg);
+      try {
+        const msg: WSMessage = JSON.parse(event.data);
+        onMessageRef.current(msg);
+      } catch {
+        console.error("Failed to parse WebSocket message:", event.data);
+      }
     };
 
     ws.onclose = () => setConnected(false);
