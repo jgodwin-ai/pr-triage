@@ -31,7 +31,7 @@ export default function AnalysisView({ analysis, onBack }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: "0 20px" }}>
+    <div className="analysis-container">
       <Breadcrumbs crumbs={crumbs} />
       <ExecutiveSummary analysis={analysis} />
 

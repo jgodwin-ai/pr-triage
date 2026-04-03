@@ -7,15 +7,15 @@ interface Props {
 
 export default function ClusterDetail({ cluster }: Props) {
   return (
-    <div>
+    <div className="cluster-detail">
       <h3>{cluster.name}</h3>
       <p>{cluster.summary}</p>
-      <p style={{ fontSize: 14, color: "#666" }}>
+      <p className="detail-meta">
         {cluster.files.length} file(s) · priority {cluster.priority}
       </p>
 
       {cluster.files.map((file) => (
-        <div key={file.path} style={{ marginTop: 16, borderTop: "1px solid #eee", paddingTop: 16 }}>
+        <div key={file.path} className="file-separator">
           <DiffView file={file} />
         </div>
       ))}

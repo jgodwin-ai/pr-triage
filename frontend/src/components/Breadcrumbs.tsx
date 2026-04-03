@@ -9,27 +9,14 @@ interface Props {
 
 export default function Breadcrumbs({ crumbs }: Props) {
   return (
-    <nav aria-label="Breadcrumb" style={{ marginBottom: 16, fontSize: 14 }}>
+    <nav className="breadcrumbs" aria-label="Breadcrumb">
       {crumbs.map((crumb, i) => (
         <span key={i}>
-          {i > 0 && " → "}
+          {i > 0 && <span className="separator">/</span>}
           {crumb.onClick ? (
-            <button
-              onClick={crumb.onClick}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#0066cc",
-                cursor: "pointer",
-                padding: 0,
-                font: "inherit",
-                textDecoration: "underline",
-              }}
-            >
-              {crumb.label}
-            </button>
+            <button onClick={crumb.onClick}>{crumb.label}</button>
           ) : (
-            <strong aria-current="page">{crumb.label}</strong>
+            <span className="current" aria-current="page">{crumb.label}</span>
           )}
         </span>
       ))}

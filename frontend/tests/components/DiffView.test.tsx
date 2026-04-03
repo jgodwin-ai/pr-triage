@@ -10,11 +10,11 @@ describe("DiffView", () => {
       annotations: [],
     });
     const { container } = render(<DiffView file={file} />);
-    const pre = container.querySelector("pre")!;
-    const lines = pre.querySelectorAll("div");
+    const diffCode = container.querySelector(".diff-code")!;
+    const lines = diffCode.querySelectorAll("div");
     const addedLine = Array.from(lines).find((el) => el.textContent === "+added line");
     expect(addedLine).toBeTruthy();
-    expect(addedLine!.style.background).toBe("rgb(230, 255, 236)");
+    expect(addedLine!.className).toContain("diff-line--added");
   });
 
   it("colors removed lines red (starts with -)", () => {
@@ -23,11 +23,11 @@ describe("DiffView", () => {
       annotations: [],
     });
     const { container } = render(<DiffView file={file} />);
-    const pre = container.querySelector("pre")!;
-    const lines = pre.querySelectorAll("div");
+    const diffCode = container.querySelector(".diff-code")!;
+    const lines = diffCode.querySelectorAll("div");
     const removedLine = Array.from(lines).find((el) => el.textContent === "-removed line");
     expect(removedLine).toBeTruthy();
-    expect(removedLine!.style.background).toBe("rgb(255, 235, 233)");
+    expect(removedLine!.className).toContain("diff-line--removed");
   });
 
   it("does NOT color +++ / --- / @@ header lines", () => {
@@ -36,10 +36,11 @@ describe("DiffView", () => {
       annotations: [],
     });
     const { container } = render(<DiffView file={file} />);
-    const pre = container.querySelector("pre")!;
-    const lines = pre.querySelectorAll("div");
+    const diffCode = container.querySelector(".diff-code")!;
+    const lines = diffCode.querySelectorAll("div");
     for (const line of Array.from(lines)) {
-      expect(line.style.background).toBe("transparent");
+      expect(line.className).not.toContain("diff-line--added");
+      expect(line.className).not.toContain("diff-line--removed");
     }
   });
 
@@ -58,10 +59,16 @@ describe("DiffView", () => {
         makeDiffAnnotation({ type: "info", message: "FYI", lineStart: 30, lineEnd: 31 }),
       ],
     });
-    render(<DiffView file={file} />);
-    expect(screen.getByText("[warning]")).toBeTruthy();
-    expect(screen.getByText("[suggestion]")).toBeTruthy();
-    expect(screen.getByText("[info]")).toBeTruthy();
+    const { container } = render(<DiffView file={file} />);
+    const warningSpan = container.querySelector(".annotation-type--warning");
+    expect(warningSpan).toBeTruthy();
+    expect(warningSpan!.textContent).toBe("warning");
+    const suggestionSpan = container.querySelector(".annotation-type--suggestion");
+    expect(suggestionSpan).toBeTruthy();
+    expect(suggestionSpan!.textContent).toBe("suggestion");
+    const infoSpan = container.querySelector(".annotation-type--info");
+    expect(infoSpan).toBeTruthy();
+    expect(infoSpan!.textContent).toBe("info");
     expect(screen.getByText(/Watch out/)).toBeTruthy();
     expect(screen.getByText(/Consider this/)).toBeTruthy();
     expect(screen.getByText(/FYI/)).toBeTruthy();
@@ -70,13 +77,13 @@ describe("DiffView", () => {
   it("handles empty diff", () => {
     const file = makeFileAnalysis({ diff: "", annotations: [] });
     const { container } = render(<DiffView file={file} />);
-    const pre = container.querySelector("pre");
-    expect(pre).toBeTruthy();
+    const diffCode = container.querySelector(".diff-code");
+    expect(diffCode).toBeTruthy();
   });
 
   it("handles empty annotations array", () => {
     const file = makeFileAnalysis({ annotations: [] });
     render(<DiffView file={file} />);
-    expect(screen.queryByText("Annotations:")).toBeNull();
+    expect(screen.queryByText("Annotations")).toBeNull();
   });
 });

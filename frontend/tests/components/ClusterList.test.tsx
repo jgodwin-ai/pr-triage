@@ -20,11 +20,11 @@ describe("ClusterList", () => {
   it("shows correct tag with color badge", () => {
     render(<ClusterList clusters={clusters} onSelectCluster={vi.fn()} />);
     const needsReview = screen.getByText("needs-review");
-    expect(needsReview.style.background).toBe("rgb(204, 51, 0)");
+    expect(needsReview.className).toContain("tag--needs-review");
     const styleOnly = screen.getByText("style-only");
-    expect(styleOnly.style.background).toBe("rgb(102, 102, 102)");
+    expect(styleOnly.className).toContain("tag--style-only");
     const lowRisk = screen.getByText("low-risk");
-    expect(lowRisk.style.background).toBe("rgb(51, 153, 0)");
+    expect(lowRisk.className).toContain("tag--low-risk");
   });
 
   it("calls onSelectCluster on click", () => {

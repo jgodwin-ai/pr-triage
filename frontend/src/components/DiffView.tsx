@@ -8,30 +8,22 @@ export default function DiffView({ file }: Props) {
   const lines = file.diff.split("\n");
 
   return (
-    <div>
+    <div className="diff-view">
       <h4>{file.path}</h4>
-      <p style={{ fontSize: 14, color: "#666" }}>
-        {file.summary} · {file.category} · impact: {file.impactScore}/5
+      <p className="diff-meta">
+        {file.summary} · {file.category}
+        <span className="impact">{file.impactScore}/5</span>
       </p>
 
       {file.annotations.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <strong>Annotations:</strong>
+        <div className="annotations">
+          <strong>Annotations</strong>
           <ul>
             {file.annotations.map((ann, i) => (
-              <li key={i} style={{ fontSize: 14 }}>
-                <span
-                  style={{
-                    color:
-                      ann.type === "warning"
-                        ? "#cc6600"
-                        : ann.type === "suggestion"
-                          ? "#0066cc"
-                          : "#666",
-                  }}
-                >
-                  [{ann.type}]
-                </span>{" "}
+              <li key={i}>
+                <span className={`annotation-type annotation-type--${ann.type}`}>
+                  {ann.type}
+                </span>
                 L{ann.lineStart}-{ann.lineEnd}: {ann.message}
               </li>
             ))}
@@ -39,32 +31,23 @@ export default function DiffView({ file }: Props) {
         </div>
       )}
 
-      <pre
-        style={{
-          background: "#f6f8fa",
-          padding: 12,
-          borderRadius: 4,
-          overflow: "auto",
-          fontSize: 13,
-          lineHeight: 1.5,
-        }}
-      >
+      <div className="diff-code">
         {lines.map((line, i) => {
-          let bg = "transparent";
+          let cls = "diff-line";
           if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) {
-            bg = "transparent"; // diff headers — don't color
+            // header — no special color
           } else if (line.startsWith("+")) {
-            bg = "#e6ffec";
+            cls += " diff-line--added";
           } else if (line.startsWith("-")) {
-            bg = "#ffebe9";
+            cls += " diff-line--removed";
           }
           return (
-            <div key={i} style={{ background: bg }}>
+            <div key={i} className={cls}>
               {line}
             </div>
           );
         })}
-      </pre>
+      </div>
     </div>
   );
 }

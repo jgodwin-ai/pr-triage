@@ -31,13 +31,13 @@ describe("AnalysisView", () => {
   it("breadcrumbs update when cluster is selected", () => {
     const analysis = makeAnalysis();
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    // Before selection: "PR Summary" is the current page (no onClick, so bold)
-    expect(screen.getByText("PR Summary").tagName).toBe("STRONG");
+    // Before selection: "PR Summary" is the current page (no onClick, so has aria-current)
+    expect(screen.getByText("PR Summary").getAttribute("aria-current")).toBe("page");
     // Select a cluster
     fireEvent.click(screen.getByText("Core Logic Changes"));
     // Now "PR Summary" should be a clickable button
     expect(screen.getByRole("button", { name: "PR Summary" })).toBeTruthy();
-    // And cluster name should be in breadcrumbs as current (bold)
+    // And cluster name should be in breadcrumbs as current
     const breadcrumbNav = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(breadcrumbNav.textContent).toContain("Core Logic Changes");
   });

@@ -16,8 +16,8 @@ describe("ExecutiveSummary", () => {
     render(<ExecutiveSummary analysis={analysis} />);
     const additions = screen.getByText("+150");
     const deletions = screen.getByText("-30");
-    expect(additions.style.color).toBe("green");
-    expect(deletions.style.color).toBe("red");
+    expect(additions.className).toContain("additions");
+    expect(deletions.className).toContain("deletions");
   });
 
   it("renders executive summary text", () => {

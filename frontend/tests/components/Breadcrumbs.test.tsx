@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import Breadcrumbs from "../../src/components/Breadcrumbs.js";
 
 describe("Breadcrumbs", () => {
-  it("renders all crumbs with arrow separators", () => {
+  it("renders all crumbs with separators", () => {
     const crumbs = [
       { label: "Home", onClick: vi.fn() },
       { label: "Section", onClick: vi.fn() },
@@ -13,8 +13,8 @@ describe("Breadcrumbs", () => {
     expect(screen.getByText("Home")).toBeTruthy();
     expect(screen.getByText("Section")).toBeTruthy();
     expect(screen.getByText("Page")).toBeTruthy();
-    // Arrow separators between crumbs
-    expect(container.textContent).toContain("→");
+    // Separators between crumbs
+    expect(container.textContent).toContain("/");
   });
 
   it("renders clickable crumbs as buttons", () => {
@@ -25,11 +25,10 @@ describe("Breadcrumbs", () => {
     expect(button.tagName).toBe("BUTTON");
   });
 
-  it("renders non-clickable crumbs as bold text with aria-current", () => {
+  it("renders non-clickable crumbs with aria-current", () => {
     const crumbs = [{ label: "Current Page" }];
     render(<Breadcrumbs crumbs={crumbs} />);
     const element = screen.getByText("Current Page");
-    expect(element.tagName).toBe("STRONG");
     expect(element.getAttribute("aria-current")).toBe("page");
   });
 

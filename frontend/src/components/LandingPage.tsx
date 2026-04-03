@@ -43,64 +43,64 @@ export default function LandingPage({ onAnalysisComplete }: Props) {
   const isLoading = stage !== null && stage !== "error" && stage !== "complete";
 
   return (
-    <div style={{ maxWidth: 600, margin: "80px auto", padding: "0 20px" }}>
-      <h1>PR Triage Bot</h1>
-      <p>Paste a GitHub PR URL to get an AI-powered layered review.</p>
+    <div className="landing">
+      <div className="landing-card">
+        <h1>PR Triage Bot</h1>
+        <p className="subtitle">Paste a GitHub PR URL to get an AI-powered layered review.</p>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="url"
-          placeholder="https://github.com/owner/repo/pull/123"
-          value={prUrl}
-          onChange={(e) => setPrUrl(e.target.value)}
-          required
-          disabled={isLoading}
-          style={{ width: "100%", padding: 8, marginBottom: 12, boxSizing: "border-box" }}
-        />
-
-        {keysConfigured && !keysConfigured.anthropic && (
+        <form onSubmit={handleSubmit}>
           <input
-            type="password"
-            placeholder="Anthropic API Key"
-            value={anthropicKey}
-            onChange={(e) => setAnthropicKey(e.target.value)}
+            className="form-input"
+            type="url"
+            placeholder="https://github.com/owner/repo/pull/123"
+            value={prUrl}
+            onChange={(e) => setPrUrl(e.target.value)}
             required
             disabled={isLoading}
-            style={{ width: "100%", padding: 8, marginBottom: 12, boxSizing: "border-box" }}
           />
+
+          {keysConfigured && !keysConfigured.anthropic && (
+            <input
+              className="form-input"
+              type="password"
+              placeholder="Anthropic API Key"
+              value={anthropicKey}
+              onChange={(e) => setAnthropicKey(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          )}
+
+          {keysConfigured && !keysConfigured.github && (
+            <input
+              className="form-input"
+              type="password"
+              placeholder="GitHub Token"
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          )}
+
+          <button className="btn-primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Analyzing..." : "Analyze PR"}
+          </button>
+        </form>
+
+        {stage && stage !== "error" && stage !== "complete" && (
+          <div className="status-bar">
+            <strong>{stage.replace(/-/g, " ")}</strong>
+            {progress && <span> — {progress}</span>}
+          </div>
         )}
 
-        {keysConfigured && !keysConfigured.github && (
-          <input
-            type="password"
-            placeholder="GitHub Token"
-            value={githubToken}
-            onChange={(e) => setGithubToken(e.target.value)}
-            required
-            disabled={isLoading}
-            style={{ width: "100%", padding: 8, marginBottom: 12, boxSizing: "border-box" }}
-          />
+        {error && (
+          <div className="error-bar">
+            <strong>Error:</strong> {error}
+          </div>
         )}
-
-        <button type="submit" disabled={isLoading} style={{ padding: "8px 24px" }}>
-          {isLoading ? "Analyzing..." : "Analyze PR"}
-        </button>
-      </form>
-
-      {stage && stage !== "error" && (
-        <div style={{ marginTop: 20 }}>
-          <p>
-            <strong>Stage:</strong> {stage}
-          </p>
-          {progress && <p>{progress}</p>}
-        </div>
-      )}
-
-      {error && (
-        <div style={{ marginTop: 20, color: "red" }}>
-          <strong>Error:</strong> {error}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

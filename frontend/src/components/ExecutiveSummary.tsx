@@ -8,18 +8,20 @@ export default function ExecutiveSummary({ analysis }: Props) {
   const { pr, executiveSummary, timeSaved } = analysis;
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div className="executive-summary">
       <h2>{pr.title}</h2>
-      <p style={{ color: "#666", fontSize: 14 }}>
-        by {pr.author} · {pr.baseBranch} ← {pr.headBranch} ·{" "}
-        <span style={{ color: "green" }}>+{pr.additions}</span>{" "}
-        <span style={{ color: "red" }}>-{pr.deletions}</span> across {pr.fileCount} files
-      </p>
-      <p>{executiveSummary}</p>
+      <div className="pr-meta">
+        <span>by {pr.author}</span>
+        <span>·</span>
+        <span>{pr.baseBranch} ← {pr.headBranch}</span>
+        <span>·</span>
+        <span className="additions">+{pr.additions}</span>
+        <span className="deletions">-{pr.deletions}</span>
+        <span>across {pr.fileCount} files</span>
+      </div>
+      <p className="summary-text">{executiveSummary}</p>
       {timeSaved && (
-        <p style={{ fontSize: 14, color: "#666" }}>
-          Estimated time saved: {timeSaved}
-        </p>
+        <span className="time-saved">Estimated time saved: {timeSaved}</span>
       )}
     </div>
   );
