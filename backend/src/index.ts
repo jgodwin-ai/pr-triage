@@ -64,7 +64,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 if (process.env.NODE_ENV === "production") {
   const publicDir = path.join(__dirname, "..", "public");
   app.use(express.static(publicDir));
-  app.get("*", (_req, res) => {
+  app.get("*", (req, res) => {
+    if (req.path.startsWith("/api/")) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
     res.sendFile(path.join(publicDir, "index.html"));
   });
 }

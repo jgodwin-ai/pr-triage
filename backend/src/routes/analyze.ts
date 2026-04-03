@@ -8,6 +8,20 @@ const router = Router();
 // In-memory store for analysis results
 const analyses = new Map<string, PRAnalysis | { status: "running" } | { status: "error"; error: string }>();
 
+const MAX_ANALYSES = 100;
+
+function pruneAnalyses(): void {
+  if (analyses.size <= MAX_ANALYSES) return;
+  // Map iterates in insertion order — delete oldest entries
+  const toDelete = analyses.size - MAX_ANALYSES;
+  let deleted = 0;
+  for (const key of analyses.keys()) {
+    if (deleted >= toDelete) break;
+    analyses.delete(key);
+    deleted++;
+  }
+}
+
 export function getAnalysis(id: string): PRAnalysis | { status: "running" } | { status: "error"; error: string } | undefined {
   return analyses.get(id);
 }
@@ -17,6 +31,7 @@ export function setAnalysis(id: string, value: PRAnalysis | { status: "running" 
 }
 
 router.post("/", (req, res) => {
+  pruneAnalyses();
   const { prUrl, anthropicApiKey, githubToken } = req.body as AnalyzeRequest;
 
   if (!prUrl) {
