@@ -21,7 +21,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-const PORT = parseInt(process.env.PORT || "9000", 10);
+const PORT = process.env.VITEST ? 0 : parseInt(process.env.PORT || "9000", 10);
 const httpServer = http.createServer(app);
 const wss = setupWebSocket(httpServer);
 
