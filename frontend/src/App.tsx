@@ -1,23 +1,28 @@
 import { useState } from "react";
 import type { PRAnalysis } from "./types.js";
+import LandingPage from "./components/LandingPage.js";
+import AnalysisView from "./components/AnalysisView.js";
 
 export default function App() {
   const [analysis, setAnalysis] = useState<PRAnalysis | null>(null);
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
 
   if (analysis) {
     return (
-      <div>
-        <button onClick={() => setAnalysis(null)}>Back</button>
-        <h1>{analysis.pr.title}</h1>
-        <p>{analysis.executiveSummary}</p>
-      </div>
+      <AnalysisView
+        analysis={analysis}
+        onBack={() => {
+          setAnalysis(null);
+          setAnalysisId(null);
+        }}
+      />
     );
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: "80px auto", padding: "0 20px" }}>
-      <h1>PR Triage Bot</h1>
-      <p>Frontend shell — components coming in Tasks 12-15.</p>
-    </div>
+    <LandingPage
+      onAnalysisStarted={(id) => setAnalysisId(id)}
+      onAnalysisComplete={(result) => setAnalysis(result)}
+    />
   );
 }
