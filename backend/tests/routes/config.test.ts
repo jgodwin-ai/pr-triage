@@ -28,6 +28,7 @@ describe("GET /api/config/status", () => {
     expect(res.body).toEqual({
       anthropicKeyConfigured: true,
       githubTokenConfigured: true,
+      llmProvider: "anthropic-sdk",
     });
   });
 
@@ -40,6 +41,7 @@ describe("GET /api/config/status", () => {
     expect(res.body).toEqual({
       anthropicKeyConfigured: false,
       githubTokenConfigured: false,
+      llmProvider: "claude-cli",
     });
   });
 });

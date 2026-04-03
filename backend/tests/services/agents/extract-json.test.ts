@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractJSON, getResponseText } from "../../../src/services/agents/extract-json.js";
+import { extractJSON } from "../../../src/services/agents/extract-json.js";
 
 describe("extractJSON", () => {
   it("parses plain JSON", () => {
@@ -23,7 +23,7 @@ describe("extractJSON", () => {
   });
 
   it("throws descriptive error on invalid JSON", () => {
-    expect(() => extractJSON("not json at all")).toThrow("Failed to parse Claude response as JSON");
+    expect(() => extractJSON("not json at all")).toThrow("Failed to parse LLM response as JSON");
     expect(() => extractJSON("not json at all")).toThrow("not json at all");
   });
 
@@ -35,31 +35,5 @@ describe("extractJSON", () => {
       expect(e.message).toContain("x".repeat(200));
       expect(e.message).not.toContain("x".repeat(201));
     }
-  });
-});
-
-describe("getResponseText", () => {
-  it("returns text from valid text content block", () => {
-    const response = { content: [{ type: "text", text: "hello" }] };
-    expect(getResponseText(response)).toBe("hello");
-  });
-
-  it("throws on empty content array", () => {
-    expect(() => getResponseText({ content: [] })).toThrow("empty response content");
-  });
-
-  it("throws on non-text content block", () => {
-    const response = { content: [{ type: "tool_use" }] };
-    expect(() => getResponseText(response)).toThrow("non-text content block: tool_use");
-  });
-
-  it("throws on text block with empty text", () => {
-    const response = { content: [{ type: "text", text: "" }] };
-    expect(() => getResponseText(response)).toThrow("non-text content block");
-  });
-
-  it("throws on text block with missing text property", () => {
-    const response = { content: [{ type: "text" }] };
-    expect(() => getResponseText(response)).toThrow("non-text content block");
   });
 });

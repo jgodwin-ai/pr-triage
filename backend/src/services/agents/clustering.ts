@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type { LLMClient } from "../llm-client.js";
 import type { FileAnalysis, ChangeCluster } from "../../types.js";
-import { extractJSON, getResponseText } from "./extract-json.js";
+import { extractJSON } from "./extract-json.js";
 
 export function buildClusteringPrompt(files: FileAnalysis[]): string {
   const fileSummaries = files
@@ -42,17 +42,9 @@ Clustering guidelines:
 
 export async function clusterFiles(
   files: FileAnalysis[],
-  client: Anthropic
+  client: LLMClient
 ): Promise<ChangeCluster[]> {
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2048,
-    messages: [
-      { role: "user", content: buildClusteringPrompt(files) },
-    ],
-  });
-
-  const text = getResponseText(response);
+  const text = await client.complete(buildClusteringPrompt(files));
   const parsed = extractJSON(text) as any;
 
   const filesByPath = new Map(files.map((f) => [f.path, f]));

@@ -12,7 +12,6 @@ const MAX_ANALYSES = 100;
 
 function pruneAnalyses(): void {
   if (analyses.size <= MAX_ANALYSES) return;
-  // Map iterates in insertion order — delete oldest entries
   const toDelete = analyses.size - MAX_ANALYSES;
   let deleted = 0;
   for (const key of analyses.keys()) {
@@ -46,25 +45,21 @@ router.post("/", (req, res) => {
     return;
   }
 
-  const effectiveAnthropicKey = anthropicApiKey || process.env.ANTHROPIC_API_KEY;
   const effectiveGithubToken = githubToken || process.env.GITHUB_TOKEN;
-
-  if (!effectiveAnthropicKey) {
-    res.status(400).json({ error: "Anthropic API key required (set ANTHROPIC_API_KEY or pass anthropicApiKey)" });
-    return;
-  }
 
   if (!effectiveGithubToken) {
     res.status(400).json({ error: "GitHub token required (set GITHUB_TOKEN or pass githubToken)" });
     return;
   }
 
+  // Anthropic key is optional — falls back to Claude CLI if not provided
+  const effectiveAnthropicKey = anthropicApiKey || process.env.ANTHROPIC_API_KEY || undefined;
+
   const analysisId = uuidv4();
   analyses.set(analysisId, { status: "running" });
 
-  // Fire-and-forget: the actual pipeline runs async and updates via WS + store
   if (req.app.locals.startPipeline) {
-    req.app.locals.startPipeline(analysisId, prUrl, effectiveAnthropicKey, effectiveGithubToken);
+    req.app.locals.startPipeline(analysisId, prUrl, effectiveGithubToken, effectiveAnthropicKey);
   }
 
   res.status(202).json({ analysisId });

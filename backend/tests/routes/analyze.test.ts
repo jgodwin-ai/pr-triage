@@ -33,23 +33,6 @@ describe("POST /api/analyze", () => {
     expect(res.body.analysisId).toBeDefined();
   });
 
-  it("returns 400 when Anthropic API key is missing (no env, no body)", async () => {
-    const savedAnthropicKey = process.env.ANTHROPIC_API_KEY;
-    const savedGithubToken = process.env.GITHUB_TOKEN;
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.GITHUB_TOKEN;
-
-    const res = await request
-      .post("/api/analyze")
-      .send({ prUrl: "https://github.com/octocat/hello-world/pull/42" });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain("Anthropic API key");
-
-    process.env.ANTHROPIC_API_KEY = savedAnthropicKey;
-    process.env.GITHUB_TOKEN = savedGithubToken;
-  });
-
   it("returns 400 when GitHub token is missing (no env, no body)", async () => {
     const savedAnthropicKey = process.env.ANTHROPIC_API_KEY;
     const savedGithubToken = process.env.GITHUB_TOKEN;
@@ -62,6 +45,23 @@ describe("POST /api/analyze", () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toContain("GitHub token");
+
+    process.env.ANTHROPIC_API_KEY = savedAnthropicKey;
+    process.env.GITHUB_TOKEN = savedGithubToken;
+  });
+
+  it("returns 202 when Anthropic API key is missing (it is optional)", async () => {
+    const savedAnthropicKey = process.env.ANTHROPIC_API_KEY;
+    const savedGithubToken = process.env.GITHUB_TOKEN;
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.GITHUB_TOKEN = "ghp_test";
+
+    const res = await request
+      .post("/api/analyze")
+      .send({ prUrl: "https://github.com/octocat/hello-world/pull/42" });
+
+    expect(res.status).toBe(202);
+    expect(res.body.analysisId).toBeDefined();
 
     process.env.ANTHROPIC_API_KEY = savedAnthropicKey;
     process.env.GITHUB_TOKEN = savedGithubToken;

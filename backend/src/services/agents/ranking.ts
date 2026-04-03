@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type { LLMClient } from "../llm-client.js";
 import type { ChangeCluster, PRMetadata } from "../../types.js";
-import { extractJSON, getResponseText } from "./extract-json.js";
+import { extractJSON } from "./extract-json.js";
 
 interface RankingResult {
   executiveSummary: string;
@@ -52,17 +52,9 @@ Ranking guidelines:
 export async function rankAndSynthesize(
   metadata: PRMetadata,
   clusters: ChangeCluster[],
-  client: Anthropic
+  client: LLMClient
 ): Promise<RankingResult> {
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 2048,
-    messages: [
-      { role: "user", content: buildRankingPrompt(metadata, clusters) },
-    ],
-  });
-
-  const text = getResponseText(response);
+  const text = await client.complete(buildRankingPrompt(metadata, clusters));
   const parsed = extractJSON(text) as any;
 
   const clusterMap = new Map(clusters.map((c) => [c.id, c]));

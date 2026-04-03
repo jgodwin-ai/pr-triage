@@ -12,24 +12,15 @@ describe("buildFileAnalyzerPrompt", () => {
 });
 
 describe("analyzeFile", () => {
-  it("calls Claude and returns a FileAnalysis", async () => {
+  it("calls LLMClient and returns a FileAnalysis", async () => {
     const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                path: "src/app.ts",
-                summary: "Adds error handling to the main app entry",
-                category: "logic",
-                impactScore: 3,
-                annotations: [],
-              }),
-            },
-          ],
-        }),
-      },
+      complete: vi.fn().mockResolvedValue(JSON.stringify({
+        path: "src/app.ts",
+        summary: "Adds error handling to the main app entry",
+        category: "logic",
+        impactScore: 3,
+        annotations: [],
+      })),
     };
 
     const result = await analyzeFile(
@@ -43,27 +34,18 @@ describe("analyzeFile", () => {
     expect(result.impactScore).toBe(3);
     expect(result.diff).toBe("@@ diff content @@");
 
-    expect(mockClient.messages.create).toHaveBeenCalledOnce();
+    expect(mockClient.complete).toHaveBeenCalledOnce();
   });
 
-  it("handles markdown-wrapped JSON from Claude", async () => {
+  it("handles markdown-wrapped JSON from LLMClient", async () => {
     const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [
-            {
-              type: "text",
-              text: '```json\n' + JSON.stringify({
-                path: "src/utils.ts",
-                summary: "Adds utility helpers",
-                category: "logic",
-                impactScore: 2,
-                annotations: [],
-              }) + '\n```',
-            },
-          ],
-        }),
-      },
+      complete: vi.fn().mockResolvedValue('```json\n' + JSON.stringify({
+        path: "src/utils.ts",
+        summary: "Adds utility helpers",
+        category: "logic",
+        impactScore: 2,
+        annotations: [],
+      }) + '\n```'),
     };
 
     const result = await analyzeFile(
@@ -75,43 +57,13 @@ describe("analyzeFile", () => {
     expect(result.category).toBe("logic");
   });
 
-  it("throws when Claude returns empty content array", async () => {
+  it("throws descriptive error when LLMClient returns invalid JSON", async () => {
     const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({ content: [] }),
-      },
+      complete: vi.fn().mockResolvedValue("Sure! Here is the analysis..."),
     };
 
     await expect(
       analyzeFile({ filename: "a.ts", patch: "diff" }, mockClient as any)
-    ).rejects.toThrow("empty response content");
-  });
-
-  it("throws when Claude returns non-text block", async () => {
-    const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ type: "tool_use", id: "t1", name: "fn", input: {} }],
-        }),
-      },
-    };
-
-    await expect(
-      analyzeFile({ filename: "a.ts", patch: "diff" }, mockClient as any)
-    ).rejects.toThrow("non-text content block");
-  });
-
-  it("throws descriptive error when Claude returns invalid JSON", async () => {
-    const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ type: "text", text: "Sure! Here is the analysis..." }],
-        }),
-      },
-    };
-
-    await expect(
-      analyzeFile({ filename: "a.ts", patch: "diff" }, mockClient as any)
-    ).rejects.toThrow("Failed to parse Claude response as JSON");
+    ).rejects.toThrow("Failed to parse LLM response as JSON");
   });
 });

@@ -39,37 +39,28 @@ describe("buildClusteringPrompt", () => {
 });
 
 describe("clusterFiles", () => {
-  it("calls Claude and returns ChangeCluster array", async () => {
+  it("calls LLMClient and returns ChangeCluster array", async () => {
     const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                clusters: [
-                  {
-                    id: "auth-changes",
-                    name: "Authentication improvements",
-                    summary: "Adds password validation and session expiry",
-                    tag: "needs-review",
-                    priority: 1,
-                    filePaths: ["src/auth/login.ts", "src/auth/session.ts"],
-                  },
-                  {
-                    id: "docs-update",
-                    name: "Documentation update",
-                    summary: "Updates README setup instructions",
-                    tag: "low-risk",
-                    priority: 2,
-                    filePaths: ["README.md"],
-                  },
-                ],
-              }),
-            },
-          ],
-        }),
-      },
+      complete: vi.fn().mockResolvedValue(JSON.stringify({
+        clusters: [
+          {
+            id: "auth-changes",
+            name: "Authentication improvements",
+            summary: "Adds password validation and session expiry",
+            tag: "needs-review",
+            priority: 1,
+            filePaths: ["src/auth/login.ts", "src/auth/session.ts"],
+          },
+          {
+            id: "docs-update",
+            name: "Documentation update",
+            summary: "Updates README setup instructions",
+            tag: "low-risk",
+            priority: 2,
+            filePaths: ["README.md"],
+          },
+        ],
+      })),
     };
 
     const result = await clusterFiles(sampleFiles, mockClient as any);
@@ -83,27 +74,18 @@ describe("clusterFiles", () => {
 
   it("drops filePaths that don't match any input file", async () => {
     const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                clusters: [
-                  {
-                    id: "cluster-1",
-                    name: "Mixed cluster",
-                    summary: "Has known and unknown files",
-                    tag: "needs-review",
-                    priority: 1,
-                    filePaths: ["src/auth/login.ts", "nonexistent/file.ts"],
-                  },
-                ],
-              }),
-            },
-          ],
-        }),
-      },
+      complete: vi.fn().mockResolvedValue(JSON.stringify({
+        clusters: [
+          {
+            id: "cluster-1",
+            name: "Mixed cluster",
+            summary: "Has known and unknown files",
+            tag: "needs-review",
+            priority: 1,
+            filePaths: ["src/auth/login.ts", "nonexistent/file.ts"],
+          },
+        ],
+      })),
     };
 
     const result = await clusterFiles(sampleFiles, mockClient as any);
@@ -112,35 +94,22 @@ describe("clusterFiles", () => {
     expect(result[0].files[0].path).toBe("src/auth/login.ts");
   });
 
-  it("returns empty array when Claude returns empty clusters", async () => {
+  it("returns empty array when LLMClient returns empty clusters", async () => {
     const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({ clusters: [] }),
-            },
-          ],
-        }),
-      },
+      complete: vi.fn().mockResolvedValue(JSON.stringify({ clusters: [] })),
     };
 
     const result = await clusterFiles(sampleFiles, mockClient as any);
     expect(result).toHaveLength(0);
   });
 
-  it("throws when Claude returns invalid JSON", async () => {
+  it("throws when LLMClient returns invalid JSON", async () => {
     const mockClient = {
-      messages: {
-        create: vi.fn().mockResolvedValue({
-          content: [{ type: "text", text: "I'll group these files..." }],
-        }),
-      },
+      complete: vi.fn().mockResolvedValue("I'll group these files..."),
     };
 
     await expect(clusterFiles(sampleFiles, mockClient as any)).rejects.toThrow(
-      "Failed to parse Claude response as JSON"
+      "Failed to parse LLM response as JSON"
     );
   });
 });

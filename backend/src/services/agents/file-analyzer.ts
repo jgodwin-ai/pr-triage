@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type { LLMClient } from "../llm-client.js";
 import type { FileAnalysis } from "../../types.js";
-import { extractJSON, getResponseText } from "./extract-json.js";
+import { extractJSON } from "./extract-json.js";
 
 export function buildFileAnalyzerPrompt(filename: string, patch: string): string {
   return `Analyze this file diff from a pull request.
@@ -39,17 +39,9 @@ Category guide:
 
 export async function analyzeFile(
   file: { filename: string; patch: string },
-  client: Anthropic
+  client: LLMClient
 ): Promise<FileAnalysis> {
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1024,
-    messages: [
-      { role: "user", content: buildFileAnalyzerPrompt(file.filename, file.patch) },
-    ],
-  });
-
-  const text = getResponseText(response);
+  const text = await client.complete(buildFileAnalyzerPrompt(file.filename, file.patch));
   const parsed = extractJSON(text) as any;
 
   return {
