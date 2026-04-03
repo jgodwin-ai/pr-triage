@@ -28,12 +28,24 @@ export async function fetchPR(
 ): Promise<PRData> {
   const { owner, repo, pullNumber } = parts;
 
-  const [prResponse, filesResponse] = await Promise.all([
-    octokit.rest.pulls.get({ owner, repo, pull_number: pullNumber }),
-    octokit.rest.pulls.listFiles({ owner, repo, pull_number: pullNumber, per_page: 100 }),
-  ]);
-
+  const prResponse = await octokit.rest.pulls.get({ owner, repo, pull_number: pullNumber });
   const pr = prResponse.data;
+
+  // Paginate file listing
+  const allFiles: Array<{ filename: string; patch: string }> = [];
+  let page = 1;
+  while (true) {
+    const filesResponse = await octokit.rest.pulls.listFiles({
+      owner, repo, pull_number: pullNumber, per_page: 100, page,
+    });
+    for (const f of filesResponse.data) {
+      if (f.patch) {
+        allFiles.push({ filename: f.filename, patch: f.patch });
+      }
+    }
+    if (filesResponse.data.length < 100) break;
+    page++;
+  }
 
   const metadata: PRMetadata = {
     url: `https://github.com/${owner}/${repo}/pull/${pullNumber}`,
@@ -46,12 +58,7 @@ export async function fetchPR(
     fileCount: pr.changed_files,
   };
 
-  const files = filesResponse.data.map((f) => ({
-    filename: f.filename,
-    patch: f.patch ?? "",
-  }));
-
-  return { metadata, files };
+  return { metadata, files: allFiles };
 }
 
 export function createOctokit(token: string): Octokit {

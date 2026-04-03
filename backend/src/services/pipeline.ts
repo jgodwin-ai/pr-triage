@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import pLimit from "p-limit";
 import type {
   PRAnalysis,
   PRMetadata,
@@ -45,18 +46,21 @@ export async function runPipeline(
     // Stage 1: File analysis (parallel)
     onMessage({ type: "status", stage: "file-analysis", progress: `0/${files.length} files` });
 
+    const limit = pLimit(5);
     let completed = 0;
     const fileAnalyses = await Promise.all(
-      files.map(async (file) => {
-        const result = await analyzeFile(file);
-        completed++;
-        onMessage({
-          type: "status",
-          stage: "file-analysis",
-          progress: `${completed}/${files.length} files`,
-        });
-        return result;
-      })
+      files.map((file) =>
+        limit(async () => {
+          const result = await analyzeFile(file);
+          completed++;
+          onMessage({
+            type: "status",
+            stage: "file-analysis",
+            progress: `${completed}/${files.length} files`,
+          });
+          return result;
+        })
+      )
     );
 
     // Stage 2: Clustering
