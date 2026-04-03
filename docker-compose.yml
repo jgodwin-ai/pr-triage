@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT_PREFIX:-90}00:9000"
+    environment:
+      - PORT=9000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    env_file:
+      - path: .env
+        required: false
+
+  app-dev:
+    image: node:22-alpine
+    working_dir: /app
+    ports:
+      - "${PORT_PREFIX:-90}00:9000"
+      - "${PORT_PREFIX:-90}01:5173"
+    environment:
+      - PORT=9000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      - backend_modules:/app/backend/node_modules
+      - frontend_modules:/app/frontend/node_modules
+    command: >
+      sh -c "
+        cd /app/backend && npm install &&
+        cd /app/frontend && npm install &&
+        cd /app/backend && npx tsx watch src/index.ts &
+        cd /app/frontend && npx vite --host 0.0.0.0 --port 5173
+      "
+    profiles:
+      - dev
+
+volumes:
+  backend_modules:
+  frontend_modules:

@@ -1,5 +1,7 @@
 import express from "express";
 import http from "http";
+import path from "path";
+import { fileURLToPath } from "url";
 import Anthropic from "@anthropic-ai/sdk";
 import configRouter from "./routes/config.js";
 import analyzeRouter, { setAnalysis } from "./routes/analyze.js";
@@ -53,6 +55,17 @@ app.locals.startPipeline = async (
     broadcast(wss, { type: "error", error: err.message });
   }
 };
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Serve frontend static files in production
+if (process.env.NODE_ENV === "production") {
+  const publicDir = path.join(__dirname, "..", "public");
+  app.use(express.static(publicDir));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
+}
 
 const server = httpServer.listen(PORT, () => {
   console.log(`Backend listening on port ${PORT}`);
