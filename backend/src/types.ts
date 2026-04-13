@@ -65,3 +65,30 @@ export interface AnalyzeRequest {
   anthropicApiKey?: string;
   githubToken?: string;
 }
+
+export type CommentTarget =
+  | { kind: "cluster"; clusterId: string }
+  | { kind: "file"; clusterId: string; path: string }
+  | { kind: "line"; clusterId: string; path: string; line: number; side: "LEFT" | "RIGHT" }
+  | { kind: "annotation"; clusterId: string; path: string; annotationIndex: number };
+
+export interface ReviewComment {
+  id: string;
+  target: CommentTarget;
+  body: string;
+  createdAt: number;
+}
+
+export interface ReviewDraft {
+  prUrl: string;
+  comments: ReviewComment[];
+  event: "COMMENT" | "APPROVE" | "REQUEST_CHANGES";
+  summary: string;
+}
+
+export interface ReviewCommentPayload {
+  path: string;
+  line: number;
+  side: "LEFT" | "RIGHT";
+  body: string;
+}
