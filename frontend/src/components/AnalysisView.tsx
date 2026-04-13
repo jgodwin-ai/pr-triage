@@ -1,14 +1,6 @@
-import { useState } from "react";
-import type { PRAnalysis, ChangeCluster } from "../types.js";
-import Breadcrumbs from "./Breadcrumbs.js";
+import type { PRAnalysis } from "../types.js";
 import ExecutiveSummary from "./ExecutiveSummary.js";
-import ClusterList from "./ClusterList.js";
-import ClusterDetail from "./ClusterDetail.js";
-
-interface Crumb {
-  label: string;
-  onClick?: () => void;
-}
+import ClusterAccordion from "./ClusterAccordion.js";
 
 interface Props {
   analysis: PRAnalysis;
@@ -16,33 +8,13 @@ interface Props {
 }
 
 export default function AnalysisView({ analysis, onBack }: Props) {
-  const [selectedCluster, setSelectedCluster] = useState<ChangeCluster | null>(null);
-
-  const crumbs: Crumb[] = [
-    { label: "New Analysis", onClick: onBack },
-    {
-      label: "PR Summary",
-      onClick: selectedCluster ? () => setSelectedCluster(null) : undefined,
-    },
-  ];
-
-  if (selectedCluster) {
-    crumbs.push({ label: selectedCluster.name });
-  }
-
   return (
     <div className="analysis-container">
-      <Breadcrumbs crumbs={crumbs} />
+      <button className="btn-link" onClick={onBack}>
+        ← Analyze another PR
+      </button>
       <ExecutiveSummary analysis={analysis} />
-
-      {selectedCluster ? (
-        <ClusterDetail cluster={selectedCluster} />
-      ) : (
-        <ClusterList
-          clusters={analysis.clusters}
-          onSelectCluster={setSelectedCluster}
-        />
-      )}
+      <ClusterAccordion clusters={analysis.clusters} />
     </div>
   );
 }

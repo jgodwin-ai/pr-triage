@@ -4,61 +4,44 @@ import AnalysisView from "../../src/components/AnalysisView.js";
 import { makeAnalysis } from "../helpers.js";
 
 describe("AnalysisView", () => {
-  it("renders executive summary and cluster list initially", () => {
+  it("renders executive summary", () => {
     const analysis = makeAnalysis();
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    // Executive summary
     expect(screen.getByText("Add new feature")).toBeTruthy();
     expect(screen.getByText(/This PR adds a new feature/)).toBeTruthy();
-    // Cluster list
-    expect(screen.getByText("Change Clusters")).toBeTruthy();
+  });
+
+  it("renders cluster accordion with cluster names", () => {
+    const analysis = makeAnalysis();
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
     expect(screen.getByText("Core Logic Changes")).toBeTruthy();
     expect(screen.getByText("Style Updates")).toBeTruthy();
   });
 
-  it("clicking a cluster shows ClusterDetail", () => {
+  it('renders "Analyze another PR" back button', () => {
     const analysis = makeAnalysis();
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    fireEvent.click(screen.getByText("Core Logic Changes"));
-    // Should now show the cluster detail heading (h3 with cluster name)
-    // Cluster list heading should be gone
-    expect(screen.queryByText("Change Clusters")).toBeNull();
-    // The cluster name appears multiple times (breadcrumb + h3 in ClusterDetail)
-    const allInstances = screen.getAllByText("Core Logic Changes");
-    expect(allInstances.length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /analyze another pr/i })).toBeTruthy();
   });
 
-  it("breadcrumbs update when cluster is selected", () => {
-    const analysis = makeAnalysis();
-    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    // Before selection: "PR Summary" is the current page (no onClick, so has aria-current)
-    expect(screen.getByText("PR Summary").getAttribute("aria-current")).toBe("page");
-    // Select a cluster
-    fireEvent.click(screen.getByText("Core Logic Changes"));
-    // Now "PR Summary" should be a clickable button
-    expect(screen.getByRole("button", { name: "PR Summary" })).toBeTruthy();
-    // And cluster name should be in breadcrumbs as current
-    const breadcrumbNav = screen.getByRole("navigation", { name: "Breadcrumb" });
-    expect(breadcrumbNav.textContent).toContain("Core Logic Changes");
-  });
-
-  it('clicking "PR Summary" breadcrumb goes back to cluster list', () => {
-    const analysis = makeAnalysis();
-    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    // Select a cluster first
-    fireEvent.click(screen.getByText("Core Logic Changes"));
-    expect(screen.queryByText("Change Clusters")).toBeNull();
-    // Click PR Summary breadcrumb
-    fireEvent.click(screen.getByRole("button", { name: "PR Summary" }));
-    // Should be back to cluster list
-    expect(screen.getByText("Change Clusters")).toBeTruthy();
-  });
-
-  it('clicking "New Analysis" calls onBack', () => {
+  it('clicking "Analyze another PR" calls onBack', () => {
     const onBack = vi.fn();
     const analysis = makeAnalysis();
     render(<AnalysisView analysis={analysis} onBack={onBack} />);
-    fireEvent.click(screen.getByRole("button", { name: "New Analysis" }));
+    fireEvent.click(screen.getByRole("button", { name: /analyze another pr/i }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("first cluster is expanded by default", () => {
+    const analysis = makeAnalysis();
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+    expect(screen.getByText(/comments on this cluster/i)).toBeTruthy();
+  });
+
+  it("does not render breadcrumbs or old cluster list heading", () => {
+    const analysis = makeAnalysis();
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+    expect(screen.queryByText("Change Clusters")).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).toBeNull();
   });
 });
