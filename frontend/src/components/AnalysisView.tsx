@@ -1,6 +1,7 @@
 import type { PRAnalysis } from "../types.js";
 import ExecutiveSummary from "./ExecutiveSummary.js";
 import ClusterAccordion from "./ClusterAccordion.js";
+import ReviewSubmitBar from "./ReviewSubmitBar.js";
 
 interface Props {
   analysis: PRAnalysis;
@@ -15,6 +16,7 @@ export default function AnalysisView({ analysis, onBack }: Props) {
       </button>
       <ExecutiveSummary analysis={analysis} />
       <ClusterAccordion clusters={analysis.clusters} />
+      <ReviewSubmitBar prUrl={analysis.pr.url} />
     </div>
   );
 }
