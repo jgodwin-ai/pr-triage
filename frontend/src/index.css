@@ -415,3 +415,55 @@ body {
 .diff-line--removed {
   background: #ffd7d5;
 }
+
+/* Phase 1.5: Accordion */
+.cluster-accordion__item { background: white; border: 1px solid #d1d9e0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+.cluster-accordion__item.is-open { box-shadow: 0 0 0 1px #0969da; border-color: #0969da; }
+.cluster-accordion__header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; user-select: none; }
+.cluster-accordion__header:hover { background: #f6f8fa; }
+.cluster-accordion__count { margin-left: auto; font-size: 12px; color: #656d76; }
+.cluster-accordion__body { padding: 0 16px 16px; border-top: 1px solid #d1d9e0; }
+
+/* Phase 1.5: Filter chips */
+.filter-bar { display: flex; gap: 8px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+.filter-bar__label { font-size: 12px; color: #656d76; }
+.chip { padding: 4px 10px; border-radius: 12px; border: 1px solid #d1d9e0; background: white; font-size: 12px; cursor: pointer; text-transform: capitalize; color: #1f2328; transition: all 0.15s; }
+.chip:hover { background: #f6f8fa; }
+.chip.is-active { color: white; border-color: transparent; }
+.chip--warning.is-active { background: #d4a72c; }
+.chip--info.is-active { background: #0969da; }
+.chip--suggestion.is-active { background: #8250df; }
+
+/* Phase 1.5: Comments */
+.comment-box { margin: 8px 0; }
+.comment-box__input { width: 100%; border: 1px solid #d1d9e0; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 13px; resize: vertical; min-height: 60px; }
+.comment-box__input:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.15); }
+.comment-box__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+.btn-link { background: none; border: none; color: #0969da; cursor: pointer; padding: 0; font: inherit; font-size: 13px; }
+.btn-link:hover { text-decoration: underline; }
+.comment { background: #f6f8fa; border-left: 3px solid #0969da; padding: 8px 12px; margin: 6px 0; border-radius: 0 4px 4px 0; }
+.comment p { margin: 0; font-size: 13px; }
+.comment__actions { display: flex; gap: 8px; margin-top: 4px; }
+.comment-thread__title { font-size: 11px; font-weight: 600; color: #656d76; text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 4px; }
+
+/* Phase 1.5: Diff viewer */
+.diff-viewer { margin: 16px 0; border: 1px solid #d1d9e0; border-radius: 8px; overflow: hidden; background: white; }
+.diff-viewer__header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
+.diff-viewer__path { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; margin: 0; }
+.diff-viewer__view-toggle { font-size: 12px; display: flex; gap: 6px; align-items: center; cursor: pointer; color: #656d76; }
+.diff-viewer__fallback { padding: 12px; font-size: 12px; overflow: auto; background: #f6f8fa; margin: 0; }
+.diff-viewer__fallback-annotations { padding: 12px; }
+.diff-viewer__line-comment { padding: 8px 12px; border-top: 1px dashed #d1d9e0; background: #f6f8fa; }
+.diff-viewer__line-comment strong { display: block; font-size: 12px; color: #656d76; margin-bottom: 4px; }
+
+.diff-annotation { background: #fff8c5; border: 1px solid #d4a72c; border-radius: 4px; padding: 8px 12px; margin: 4px 8px; }
+.diff-annotation--info { background: #ddf4ff; border-color: #54aeff; }
+.diff-annotation--suggestion { background: #fbefff; border-color: #c297ff; }
+.diff-annotation__header { display: flex; gap: 8px; font-size: 12px; align-items: center; margin-bottom: 4px; }
+.diff-annotation__message { font-size: 13px; margin: 0 0 6px; line-height: 1.4; }
+
+/* Phase 1.5: Review submit bar */
+.review-submit-bar { position: sticky; bottom: 0; background: white; border-top: 1px solid #d1d9e0; padding: 12px 24px; display: flex; gap: 12px; align-items: center; box-shadow: 0 -2px 4px rgba(0,0,0,0.04); margin-top: 20px; z-index: 10; }
+.review-submit-bar select { padding: 6px 8px; border: 1px solid #d1d9e0; border-radius: 6px; font-size: 13px; background: white; }
+.review-submit-bar a { color: #0969da; text-decoration: none; font-size: 13px; }
+.review-submit-bar a:hover { text-decoration: underline; }
