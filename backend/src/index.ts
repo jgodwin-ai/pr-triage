@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import configRouter from "./routes/config.js";
 import analyzeRouter, { setAnalysis } from "./routes/analyze.js";
+import reviewRouter from "./routes/review.js";
 import { setupWebSocket, broadcast } from "./ws.js";
 import { parsePrUrl, fetchPR, createOctokit } from "./services/github.js";
 import { analyzeFilesBatch } from "./services/agents/file-analyzer-batch.js";
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use("/api/config", configRouter);
 app.use("/api/analyze", analyzeRouter);
 app.use("/api/analysis", analyzeRouter);
+app.use("/api/review", reviewRouter);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
