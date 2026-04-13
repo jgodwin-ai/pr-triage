@@ -53,7 +53,7 @@ describe("runPipeline", () => {
     const result = await runPipeline(
       { metadata: mockMetadata, files: mockFiles },
       {
-        analyzeFile: mockAnalyzeFile,
+        analyzeFiles: async (files: any) => Promise.all(files.map(mockAnalyzeFile)),
         clusterFiles: mockClusterFiles,
         rankAndSynthesize: mockRankAndSynthesize,
         onMessage,
@@ -61,6 +61,7 @@ describe("runPipeline", () => {
     );
 
     expect(mockAnalyzeFile).toHaveBeenCalledTimes(2);
+    // (via analyzeFiles wrapper)
     expect(mockClusterFiles).toHaveBeenCalledOnce();
     expect(mockRankAndSynthesize).toHaveBeenCalledOnce();
 
@@ -82,7 +83,7 @@ describe("runPipeline", () => {
     const result = await runPipeline(
       { metadata: mockMetadata, files: [] },
       {
-        analyzeFile: vi.fn(),
+        analyzeFiles: vi.fn(),
         clusterFiles: vi.fn(),
         rankAndSynthesize: vi.fn(),
         onMessage,
@@ -101,7 +102,7 @@ describe("runPipeline", () => {
     const onMessage = (msg: any) => messages.push(msg);
 
     const deps = {
-      analyzeFile: vi.fn().mockRejectedValue(new Error("Claude API timeout")),
+      analyzeFiles: vi.fn().mockRejectedValue(new Error("Claude API timeout")),
       clusterFiles: vi.fn(),
       rankAndSynthesize: vi.fn(),
       onMessage,
@@ -121,7 +122,7 @@ describe("runPipeline", () => {
     const onMessage = (msg: any) => messages.push(msg);
 
     const deps = {
-      analyzeFile: vi.fn().mockResolvedValue(mockFileAnalysis),
+      analyzeFiles: vi.fn().mockResolvedValue([mockFileAnalysis]),
       clusterFiles: vi.fn().mockRejectedValue(new Error("Clustering failed")),
       rankAndSynthesize: vi.fn(),
       onMessage,
@@ -141,7 +142,7 @@ describe("runPipeline", () => {
     const onMessage = (msg: any) => messages.push(msg);
 
     const deps = {
-      analyzeFile: vi.fn().mockResolvedValue(mockFileAnalysis),
+      analyzeFiles: vi.fn().mockResolvedValue([mockFileAnalysis]),
       clusterFiles: vi.fn().mockResolvedValue([mockCluster]),
       rankAndSynthesize: vi.fn().mockRejectedValue(new Error("Ranking exploded")),
       onMessage,
@@ -160,7 +161,7 @@ describe("runPipeline", () => {
     const onMessage = (msg: any) => messages.push(msg);
 
     const deps = {
-      analyzeFile: vi.fn().mockResolvedValue(mockFileAnalysis),
+      analyzeFiles: vi.fn().mockResolvedValue([mockFileAnalysis]),
       clusterFiles: vi.fn().mockResolvedValue([mockCluster]),
       rankAndSynthesize: vi.fn().mockResolvedValue({
         executiveSummary: "Final summary",

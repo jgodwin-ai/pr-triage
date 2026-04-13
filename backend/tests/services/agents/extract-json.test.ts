@@ -27,13 +27,13 @@ describe("extractJSON", () => {
     expect(() => extractJSON("not json at all")).toThrow("not json at all");
   });
 
-  it("truncates raw text in error message to 200 chars", () => {
-    const longText = "x".repeat(300);
+  it("truncates raw text in error message to 500 chars", () => {
+    const longText = "x".repeat(600);
     try {
       extractJSON(longText);
     } catch (e: any) {
-      expect(e.message).toContain("x".repeat(200));
-      expect(e.message).not.toContain("x".repeat(201));
+      expect(e.message).toContain("x".repeat(500));
+      expect(e.message).not.toContain("x".repeat(501));
     }
   });
 });

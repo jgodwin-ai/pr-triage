@@ -6,7 +6,7 @@ import configRouter from "./routes/config.js";
 import analyzeRouter, { setAnalysis } from "./routes/analyze.js";
 import { setupWebSocket, broadcast } from "./ws.js";
 import { parsePrUrl, fetchPR, createOctokit } from "./services/github.js";
-import { analyzeFile } from "./services/agents/file-analyzer.js";
+import { analyzeFilesBatch } from "./services/agents/file-analyzer-batch.js";
 import { clusterFiles } from "./services/agents/clustering.js";
 import { rankAndSynthesize } from "./services/agents/ranking.js";
 import { runPipeline } from "./services/pipeline.js";
@@ -57,7 +57,7 @@ app.locals.startPipeline = async (
     const prData = await fetchPR(parts, octokit);
 
     const analysis = await runPipeline(prData, {
-      analyzeFile: (file) => analyzeFile(file, client),
+      analyzeFiles: (files, onProgress) => analyzeFilesBatch(files, client, onProgress),
       clusterFiles: (files) => clusterFiles(files, client),
       rankAndSynthesize: (metadata, clusters) =>
         rankAndSynthesize(metadata, clusters, client),

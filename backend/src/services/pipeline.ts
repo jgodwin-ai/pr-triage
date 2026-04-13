@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from "uuid";
-import pLimit from "p-limit";
 import type {
   PRAnalysis,
   PRMetadata,
@@ -14,7 +13,10 @@ interface PRData {
 }
 
 interface PipelineDeps {
-  analyzeFile: (file: { filename: string; patch: string }) => Promise<FileAnalysis>;
+  analyzeFiles: (
+    files: Array<{ filename: string; patch: string }>,
+    onProgress: (done: number, total: number) => void,
+  ) => Promise<FileAnalysis[]>;
   clusterFiles: (files: FileAnalysis[]) => Promise<ChangeCluster[]>;
   rankAndSynthesize: (
     metadata: PRMetadata,
@@ -28,7 +30,7 @@ export async function runPipeline(
   deps: PipelineDeps
 ): Promise<PRAnalysis> {
   const { metadata, files } = prData;
-  const { analyzeFile, clusterFiles, rankAndSynthesize, onMessage } = deps;
+  const { analyzeFiles, clusterFiles, rankAndSynthesize, onMessage } = deps;
 
   if (files.length === 0) {
     const analysis: PRAnalysis = {
@@ -43,25 +45,15 @@ export async function runPipeline(
   }
 
   try {
-    // Stage 1: File analysis (parallel)
+    // Stage 1: File analysis (fan-out via subagents when supported)
     onMessage({ type: "status", stage: "file-analysis", progress: `0/${files.length} files` });
-
-    const limit = pLimit(5);
-    let completed = 0;
-    const fileAnalyses = await Promise.all(
-      files.map((file) =>
-        limit(async () => {
-          const result = await analyzeFile(file);
-          completed++;
-          onMessage({
-            type: "status",
-            stage: "file-analysis",
-            progress: `${completed}/${files.length} files`,
-          });
-          return result;
-        })
-      )
-    );
+    const fileAnalyses = await analyzeFiles(files, (done, total) => {
+      onMessage({
+        type: "status",
+        stage: "file-analysis",
+        progress: `${done}/${total} files`,
+      });
+    });
 
     // Stage 2: Clustering
     onMessage({ type: "status", stage: "clustering", progress: "grouping changes" });
