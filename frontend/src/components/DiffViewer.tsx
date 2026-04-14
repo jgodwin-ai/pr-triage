@@ -1,8 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 // @ts-expect-error — react-diff-view is not typed against latest React 18 in this repo
 import { parseDiff, Diff, Hunk, tokenize } from "react-diff-view";
-// @ts-expect-error — refractor has loose types
-import refractor from "refractor";
+import { refractor } from "refractor";
 import "react-diff-view/style/index.css";
 import type { FileAnalysis } from "../types.js";
 import type { AnnotationFilter } from "./AnnotationFilterBar.js";
@@ -10,6 +9,7 @@ import DiffLineAnnotation from "./DiffLineAnnotation.js";
 import CommentThread from "./CommentThread.js";
 import CommentBox from "./CommentBox.js";
 import { reviewDraftStore } from "../state/reviewDraft.js";
+import { useReviewDraft } from "../hooks/useReviewDraft.js";
 
 interface Props {
   clusterId: string;
@@ -29,7 +29,8 @@ function detectLanguage(path: string): string {
 
 export default function DiffViewer({ clusterId, file, filter }: Props) {
   const [viewType, setViewType] = useState<"unified" | "split">("unified");
-  const [lineCommentTarget, setLineCommentTarget] = useState<{ line: number; side: "LEFT" | "RIGHT" } | null>(null);
+  const [lineCommentTarget, setLineCommentTarget] = useState<{ changeKey: string; line: number; side: "LEFT" | "RIGHT" } | null>(null);
+  const draft = useReviewDraft(); // re-render when store changes
 
   const files = useMemo(() => {
     const header = `diff --git a/${file.path} b/${file.path}\n--- a/${file.path}\n+++ b/${file.path}\n`;
@@ -49,6 +50,8 @@ export default function DiffViewer({ clusterId, file, filter }: Props) {
 
   const widgets = useMemo(() => {
     const w: Record<string, ReactNode> = {};
+
+    // Annotation widgets (existing behaviour)
     file.annotations.forEach((ann, idx) => {
       if (!filter[ann.type]) return;
       const key = `I${ann.lineEnd}`;
@@ -64,8 +67,48 @@ export default function DiffViewer({ clusterId, file, filter }: Props) {
       );
       w[key] = existing ? <>{existing}{node}</> : node;
     });
+
+    // Existing line-comment widgets from the store
+    draft.comments.forEach((c) => {
+      if (c.target.kind !== "line") return;
+      if (c.target.clusterId !== clusterId || c.target.path !== file.path) return;
+      const { line, side } = c.target;
+      const key = side === "RIGHT" ? `I${line}` : `D${line}`;
+      const node = (
+        <div key={c.id} className="diff-line-comment">
+          <p>{c.body}</p>
+          <div className="comment__actions">
+            <button className="btn-link" onClick={() => reviewDraftStore.removeComment(c.id)}>Delete</button>
+          </div>
+        </div>
+      );
+      const existing = w[key];
+      w[key] = existing ? <>{existing}{node}</> : node;
+    });
+
+    // Active composer widget
+    if (lineCommentTarget) {
+      const { changeKey } = lineCommentTarget;
+      const composerNode = (
+        <div className="diff-line-comment diff-line-comment--composing">
+          <CommentBox
+            onSubmit={(body) => {
+              reviewDraftStore.addComment(
+                { kind: "line", clusterId, path: file.path, line: lineCommentTarget.line, side: lineCommentTarget.side },
+                body,
+              );
+              setLineCommentTarget(null);
+            }}
+            onCancel={() => setLineCommentTarget(null)}
+          />
+        </div>
+      );
+      const existing = w[changeKey];
+      w[changeKey] = existing ? <>{existing}{composerNode}</> : composerNode;
+    }
+
     return w;
-  }, [file.annotations, filter, clusterId, file.path]);
+  }, [file.annotations, filter, clusterId, file.path, lineCommentTarget, draft.comments]);
 
   // Render annotations listed inline even if parseDiff failed, so tests still find the text.
   const visibleAnnotations = file.annotations
@@ -99,8 +142,13 @@ export default function DiffViewer({ clusterId, file, filter }: Props) {
           widgets={widgets}
           gutterEvents={{
             onClick: ({ change, side }: any) => {
-              const line = change.lineNumber ?? change.newLineNumber ?? change.oldLineNumber;
-              if (line) setLineCommentTarget({ line, side: side === "old" ? "LEFT" : "RIGHT" });
+              const isOldSide = side === "old";
+              const line = isOldSide
+                ? (change.lineNumber ?? change.oldLineNumber)
+                : (change.lineNumber ?? change.newLineNumber);
+              if (!line) return;
+              const changeKey = isOldSide ? `D${line}` : `I${line}`;
+              setLineCommentTarget({ changeKey, line, side: isOldSide ? "LEFT" : "RIGHT" });
             },
           }}
         >
@@ -125,21 +173,6 @@ export default function DiffViewer({ clusterId, file, filter }: Props) {
         </div>
       )}
 
-      {lineCommentTarget && (
-        <div className="diff-viewer__line-comment">
-          <strong>Comment on line {lineCommentTarget.line}</strong>
-          <CommentBox
-            onSubmit={(body) => {
-              reviewDraftStore.addComment(
-                { kind: "line", clusterId, path: file.path, line: lineCommentTarget.line, side: lineCommentTarget.side },
-                body,
-              );
-              setLineCommentTarget(null);
-            }}
-            onCancel={() => setLineCommentTarget(null)}
-          />
-        </div>
-      )}
     </div>
   );
 }

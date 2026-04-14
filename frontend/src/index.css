@@ -467,3 +467,8 @@ body {
 .review-submit-bar select { padding: 6px 8px; border: 1px solid #d1d9e0; border-radius: 6px; font-size: 13px; background: white; }
 .review-submit-bar a { color: #0969da; text-decoration: none; font-size: 13px; }
 .review-submit-bar a:hover { text-decoration: underline; }
+
+/* Phase 1.6: Inline diff line comments */
+.diff-line-comment { padding: 8px 12px; margin: 2px 8px; background: #f6f8fa; border: 1px solid #d1d9e0; border-radius: 4px; font-size: 13px; }
+.diff-line-comment--composing { background: white; border-color: #0969da; }
+.diff-line-comment p { margin: 0 0 4px; }
