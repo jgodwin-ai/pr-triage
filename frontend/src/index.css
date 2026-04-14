@@ -472,3 +472,13 @@ body {
 .diff-line-comment { padding: 8px 12px; margin: 2px 8px; background: #f6f8fa; border: 1px solid #d1d9e0; border-radius: 4px; font-size: 13px; }
 .diff-line-comment--composing { background: white; border-color: #0969da; }
 .diff-line-comment p { margin: 0 0 4px; }
+
+/* Phase 1.6: Collapsible file accordion */
+.file-accordion { border: 1px solid #d1d9e0; border-radius: 6px; margin: 8px 0; background: white; }
+.file-accordion__header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; user-select: none; }
+.file-accordion__header:hover { background: #f6f8fa; }
+.file-accordion__chevron { color: #656d76; width: 12px; font-size: 10px; }
+.file-accordion__path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; color: #1f2328; }
+.file-accordion__meta { margin-left: auto; font-size: 12px; color: #656d76; }
+.file-accordion__body { border-top: 1px solid #d1d9e0; padding: 8px 12px; }
+.file-accordion__body .diff-viewer { margin: 0; border: none; }

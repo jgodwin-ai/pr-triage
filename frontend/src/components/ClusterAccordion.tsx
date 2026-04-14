@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ChangeCluster } from "../types.js";
 import CommentThread from "./CommentThread.js";
-import DiffViewer from "./DiffViewer.js";
+import FileAccordion from "./FileAccordion.js";
 import AnnotationFilterBar, { type AnnotationFilter } from "./AnnotationFilterBar.js";
 
 interface Props {
@@ -54,12 +54,13 @@ export default function ClusterAccordion({ clusters }: Props) {
                   title="Comments on this cluster"
                 />
                 <AnnotationFilterBar value={filter} onChange={setFilter} />
-                {cluster.files.map((file) => (
-                  <DiffViewer
+                {cluster.files.map((file, i) => (
+                  <FileAccordion
                     key={file.path}
                     clusterId={cluster.id}
                     file={file}
                     filter={filter}
+                    defaultOpen={i === 0}
                   />
                 ))}
               </div>
