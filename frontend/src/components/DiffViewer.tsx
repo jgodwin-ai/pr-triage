@@ -2,7 +2,13 @@ import { useMemo, useState, type ReactNode } from "react";
 // @ts-expect-error — react-diff-view is not typed against latest React 18 in this repo
 import { parseDiff, Diff, Hunk, tokenize } from "react-diff-view";
 import { refractor } from "refractor";
+import jsxLang from "refractor/jsx";
+import tsxLang from "refractor/tsx";
 import "react-diff-view/style/index.css";
+import "prismjs/themes/prism.css";
+
+refractor.register(jsxLang);
+refractor.register(tsxLang);
 import type { FileAnalysis } from "../types.js";
 import type { AnnotationFilter } from "./AnnotationFilterBar.js";
 import DiffLineAnnotation from "./DiffLineAnnotation.js";

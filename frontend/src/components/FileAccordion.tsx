@@ -40,10 +40,10 @@ export default function FileAccordion({ clusterId, file, filter, defaultOpen = f
           {chatOpen ? "Close chat" : "Chat"}
         </button>
       </header>
-      {open && (
+      {(open || chatOpen) && (
         <div className="file-accordion__body">
-          <DiffViewer clusterId={clusterId} file={file} filter={filter} />
           {chatOpen && <ChatPanel filePath={file.path} diff={file.diff} summary={file.summary} />}
+          {open && <DiffViewer clusterId={clusterId} file={file} filter={filter} />}
         </div>
       )}
     </section>
