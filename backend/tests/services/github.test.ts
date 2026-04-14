@@ -44,14 +44,13 @@ describe("fetchPR", () => {
               changed_files: 2,
             },
           }),
-          listFiles: vi.fn().mockResolvedValue({
-            data: [
-              { filename: "src/app.ts", patch: "@@ -1,3 +1,5 @@\n+new line", status: "modified" },
-              { filename: "README.md", patch: "@@ -1 +1 @@\n-old\n+new", status: "modified" },
-            ],
-          }),
+          listFiles: vi.fn(),
         },
       },
+      paginate: vi.fn().mockResolvedValue([
+        { filename: "src/app.ts", patch: "@@ -1,3 +1,5 @@\n+new line", status: "modified" },
+        { filename: "README.md", patch: "@@ -1 +1 @@\n-old\n+new", status: "modified" },
+      ]),
     };
 
     const result = await fetchPR(
@@ -93,9 +92,10 @@ describe("fetchPR", () => {
               changed_files: 1,
             },
           }),
-          listFiles: vi.fn().mockResolvedValue({ data: [] }),
+          listFiles: vi.fn(),
         },
       },
+      paginate: vi.fn().mockResolvedValue([]),
     };
 
     const result = await fetchPR(
@@ -121,14 +121,13 @@ describe("fetchPR", () => {
               changed_files: 2,
             },
           }),
-          listFiles: vi.fn().mockResolvedValue({
-            data: [
-              { filename: "logo.png", status: "added" },
-              { filename: "src/app.ts", patch: "@@ diff @@", status: "modified" },
-            ],
-          }),
+          listFiles: vi.fn(),
         },
       },
+      paginate: vi.fn().mockResolvedValue([
+        { filename: "logo.png", status: "added" },
+        { filename: "src/app.ts", patch: "@@ diff @@", status: "modified" },
+      ]),
     };
 
     const result = await fetchPR(
@@ -163,11 +162,10 @@ describe("fetchPR", () => {
               changed_files: 101,
             },
           }),
-          listFiles: vi.fn()
-            .mockResolvedValueOnce({ data: page1 })
-            .mockResolvedValueOnce({ data: page2 }),
+          listFiles: vi.fn(),
         },
       },
+      paginate: vi.fn().mockResolvedValue([...page1, ...page2]),
     };
 
     const result = await fetchPR(
@@ -176,9 +174,6 @@ describe("fetchPR", () => {
     );
 
     expect(result.files).toHaveLength(101);
-    expect(mockOctokit.rest.pulls.listFiles).toHaveBeenCalledTimes(2);
-    expect(mockOctokit.rest.pulls.listFiles).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 2 })
-    );
+    expect(mockOctokit.paginate).toHaveBeenCalledTimes(1);
   });
 });

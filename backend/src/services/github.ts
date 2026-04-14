@@ -31,21 +31,13 @@ export async function fetchPR(
   const prResponse = await octokit.rest.pulls.get({ owner, repo, pull_number: pullNumber });
   const pr = prResponse.data;
 
-  // Paginate file listing
-  const allFiles: Array<{ filename: string; patch: string }> = [];
-  let page = 1;
-  while (true) {
-    const filesResponse = await octokit.rest.pulls.listFiles({
-      owner, repo, pull_number: pullNumber, per_page: 100, page,
-    });
-    for (const f of filesResponse.data) {
-      if (f.patch) {
-        allFiles.push({ filename: f.filename, patch: f.patch });
-      }
-    }
-    if (filesResponse.data.length < 100) break;
-    page++;
-  }
+  // Paginate via Octokit — handles >100 files correctly
+  const allFilesRaw = await octokit.paginate(octokit.rest.pulls.listFiles, {
+    owner, repo, pull_number: pullNumber, per_page: 100,
+  });
+  const allFiles: Array<{ filename: string; patch: string }> = allFilesRaw
+    .filter((f: any) => f.patch)
+    .map((f: any) => ({ filename: f.filename, patch: f.patch }));
 
   const metadata: PRMetadata = {
     url: `https://github.com/${owner}/${repo}/pull/${pullNumber}`,
