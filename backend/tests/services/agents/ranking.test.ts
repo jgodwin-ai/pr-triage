@@ -11,6 +11,7 @@ const sampleMetadata: PRMetadata = {
   additions: 150,
   deletions: 20,
   fileCount: 5,
+  headSha: "abc123",
 };
 
 const sampleClusters: ChangeCluster[] = [

@@ -15,6 +15,7 @@ export interface PRMetadata {
   additions: number;
   deletions: number;
   fileCount: number;
+  headSha: string;
 }
 
 export interface ChangeCluster {

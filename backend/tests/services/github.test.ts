@@ -38,7 +38,7 @@ describe("fetchPR", () => {
               title: "Fix bug",
               user: { login: "octocat" },
               base: { ref: "main" },
-              head: { ref: "fix-branch" },
+              head: { ref: "fix-branch", sha: "deadbeef" },
               additions: 10,
               deletions: 3,
               changed_files: 2,
@@ -68,6 +68,7 @@ describe("fetchPR", () => {
       additions: 10,
       deletions: 3,
       fileCount: 2,
+      headSha: "deadbeef",
     });
 
     expect(result.files).toHaveLength(2);

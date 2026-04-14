@@ -14,6 +14,7 @@ import { runPipeline } from "./services/pipeline.js";
 import { ClaudeCliClient } from "./services/claude-cli-client.js";
 import { AnthropicSdkClient } from "./services/anthropic-sdk-client.js";
 import type { LLMClient } from "./services/llm-client.js";
+import { AnalysisCache } from "./services/analysis-cache.js";
 
 const app = express();
 app.use(express.json());
@@ -30,6 +31,10 @@ app.get("/api/health", (_req, res) => {
 const PORT = process.env.VITEST ? 0 : parseInt(process.env.PORT || "9000", 10);
 const httpServer = http.createServer(app);
 const wss = setupWebSocket(httpServer);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const cacheDir = process.env.ANALYSIS_CACHE_DIR ?? path.join(__dirname, "..", ".cache", "analyses");
+const analysisCache = new AnalysisCache(cacheDir);
 
 /**
  * Create the LLM client based on available config.
@@ -58,6 +63,13 @@ app.locals.startPipeline = async (
     broadcast(wss, { type: "status", stage: "fetching-pr", progress: "loading PR data" });
     const prData = await fetchPR(parts, octokit);
 
+    const cached = await analysisCache.get(prUrl, prData.metadata.headSha);
+    if (cached) {
+      broadcast(wss, { type: "complete", analysis: cached });
+      setAnalysis(analysisId, cached);
+      return;
+    }
+
     const analysis = await runPipeline(prData, {
       analyzeFiles: (files, onProgress) => analyzeFilesBatch(files, client, onProgress),
       clusterFiles: (files) => clusterFiles(files, client),
@@ -66,6 +78,7 @@ app.locals.startPipeline = async (
       onMessage: (msg) => broadcast(wss, msg),
     });
 
+    await analysisCache.set(prUrl, prData.metadata.headSha, analysis);
     setAnalysis(analysisId, analysis);
   } catch (err: any) {
     const message = err instanceof Error ? err.message : String(err);
@@ -73,8 +86,6 @@ app.locals.startPipeline = async (
     setAnalysis(analysisId, { status: "error", error: message });
   }
 };
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Serve frontend static files in production
 if (process.env.NODE_ENV === "production") {

@@ -56,6 +56,7 @@ export async function fetchPR(
     additions: pr.additions,
     deletions: pr.deletions,
     fileCount: pr.changed_files,
+    headSha: pr.head.sha,
   };
 
   return { metadata, files: allFiles };

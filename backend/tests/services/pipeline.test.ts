@@ -11,6 +11,7 @@ const mockMetadata: PRMetadata = {
   additions: 50,
   deletions: 10,
   fileCount: 2,
+  headSha: "abc123",
 };
 
 const mockFiles = [
