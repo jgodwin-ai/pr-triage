@@ -47,6 +47,7 @@ export function makeAnalysis(overrides: Partial<PRAnalysis> = {}): PRAnalysis {
       additions: 150,
       deletions: 30,
       fileCount: 5,
+      headSha: "abc123",
     },
     executiveSummary: "This PR adds a new feature for processing data.",
     clusters: [

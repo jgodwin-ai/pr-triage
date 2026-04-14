@@ -1,7 +1,19 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import AnalysisView from "../../src/components/AnalysisView.js";
-import { makeAnalysis } from "../helpers.js";
+import { makeAnalysis, makeCluster, makeFileAnalysis } from "../helpers.js";
+
+// Stub IntersectionObserver for jsdom
+beforeEach(() => {
+  vi.stubGlobal(
+    "IntersectionObserver",
+    vi.fn().mockImplementation(() => ({
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+    })),
+  );
+});
 
 describe("AnalysisView", () => {
   it("renders executive summary", () => {
@@ -11,7 +23,7 @@ describe("AnalysisView", () => {
     expect(screen.getByText(/This PR adds a new feature/)).toBeTruthy();
   });
 
-  it("renders cluster accordion with cluster names", () => {
+  it("renders sidebar with cluster names", () => {
     const analysis = makeAnalysis();
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
     expect(screen.getByText("Core Logic Changes")).toBeTruthy();
@@ -32,13 +44,32 @@ describe("AnalysisView", () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it("first cluster is expanded by default", () => {
-    const analysis = makeAnalysis();
+  it("renders one file-view per file across all clusters", () => {
+    const analysis = makeAnalysis({
+      clusters: [
+        makeCluster({
+          id: "c1",
+          name: "Cluster A",
+          files: [
+            makeFileAnalysis({ path: "src/foo.ts" }),
+            makeFileAnalysis({ path: "src/bar.ts" }),
+          ],
+        }),
+        makeCluster({
+          id: "c2",
+          name: "Cluster B",
+          files: [makeFileAnalysis({ path: "src/baz.ts" })],
+        }),
+      ],
+    });
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    expect(screen.getByText(/comments on this cluster/i)).toBeTruthy();
+    // Each file-view has the file path in header
+    expect(document.getElementById("file-c1-" + encodeURIComponent("src/foo.ts"))).toBeTruthy();
+    expect(document.getElementById("file-c1-" + encodeURIComponent("src/bar.ts"))).toBeTruthy();
+    expect(document.getElementById("file-c2-" + encodeURIComponent("src/baz.ts"))).toBeTruthy();
   });
 
-  it("does not render breadcrumbs or old cluster list heading", () => {
+  it("does not render breadcrumbs or old cluster accordion heading", () => {
     const analysis = makeAnalysis();
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
     expect(screen.queryByText("Change Clusters")).toBeNull();
