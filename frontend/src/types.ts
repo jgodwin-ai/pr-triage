@@ -72,6 +72,7 @@ export interface ReviewComment {
   target: CommentTarget;
   body: string;
   createdAt: number;
+  stale?: boolean;
 }
 
 export interface ReviewDraft {
