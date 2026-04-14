@@ -4,6 +4,26 @@ import { useReviewDraft } from "../hooks/useReviewDraft.js";
 
 interface Props { prUrl: string; }
 
+const events = [
+  { value: "COMMENT", label: "Comment", desc: "Submit general feedback without explicit approval." },
+  { value: "APPROVE", label: "Approve", desc: "Submit feedback and approve merging these changes." },
+  { value: "REQUEST_CHANGES", label: "Request changes", desc: "Submit feedback that must be addressed before merging." },
+] as const;
+
+type EventValue = typeof events[number]["value"];
+
+function eventClass(ev: EventValue): string {
+  if (ev === "COMMENT") return "comment";
+  if (ev === "APPROVE") return "approve";
+  return "request-changes";
+}
+
+function submitLabel(ev: EventValue): string {
+  if (ev === "APPROVE") return "Approve review";
+  if (ev === "REQUEST_CHANGES") return "Request changes";
+  return "Submit review";
+}
+
 export default function ReviewSubmitBar({ prUrl }: Props) {
   const draft = useReviewDraft();
   const [submitting, setSubmitting] = useState(false);
@@ -11,17 +31,6 @@ export default function ReviewSubmitBar({ prUrl }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const staleCount = draft.comments.filter((c) => c.stale).length;
-  const totalCount = draft.comments.length;
-
-  const breakdown: string[] = [];
-  const lineCount = draft.comments.filter((c) => c.target.kind === "line").length;
-  const clusterCount = draft.comments.filter((c) => c.target.kind === "cluster").length;
-  const fileCount = draft.comments.filter((c) => c.target.kind === "file").length;
-  const annotationCount = draft.comments.filter((c) => c.target.kind === "annotation").length;
-  if (lineCount) breakdown.push(`${lineCount} line`);
-  if (clusterCount) breakdown.push(`${clusterCount} cluster`);
-  if (fileCount) breakdown.push(`${fileCount} file`);
-  if (annotationCount) breakdown.push(`${annotationCount} annotation`);
 
   const submit = async () => {
     setSubmitting(true); setError(null);
@@ -53,66 +62,54 @@ export default function ReviewSubmitBar({ prUrl }: Props) {
 
   return (
     <div className="review-form">
-      <h2 className="review-form__heading">Finish review</h2>
-
+      <h3 className="review-form__heading">Finish your review</h3>
       <textarea
-        className="review-form__summary form-input"
-        placeholder="Leave a general comment about this PR (optional)"
+        className="review-form__summary"
+        placeholder="Leave a comment"
         value={draft.summary}
         onChange={(e) => reviewDraftStore.setSummary(e.target.value)}
-        rows={4}
         disabled={submitting}
       />
-
-      <div className="review-form__status">
-        <span>
-          <strong>{totalCount} comment{totalCount === 1 ? "" : "s"}</strong> pending
-          {breakdown.length > 0 && ` (${breakdown.join(", ")})`}
-        </span>
-        {staleCount > 0 && (
-          <span className="review-form__stale-warning">
-            {staleCount} comment{staleCount === 1 ? "" : "s"} from a previous commit
-          </span>
-        )}
+      {staleCount > 0 && (
+        <div className="review-form__stale">
+          {staleCount} comment{staleCount === 1 ? "" : "s"} from an earlier commit — review before submitting.
+        </div>
+      )}
+      <div className="review-form__pending">
+        {draft.comments.length} comment{draft.comments.length === 1 ? "" : "s"} pending
       </div>
-
-      <div className="review-form__radio-group" role="group" aria-label="Review type">
-        {(["COMMENT", "APPROVE", "REQUEST_CHANGES"] as const).map((ev) => {
-          const labels: Record<string, string> = {
-            COMMENT: "Comment",
-            APPROVE: "Approve",
-            REQUEST_CHANGES: "Request changes",
-          };
-          return (
-            <label
-              key={ev}
-              className={`review-form__radio review-form__radio--${ev.toLowerCase().replace("_", "-")} ${draft.event === ev ? "is-selected" : ""}`}
-            >
-              <input
-                type="radio"
-                name="review-event"
-                value={ev}
-                checked={draft.event === ev}
-                onChange={() => reviewDraftStore.setEvent(ev)}
-                disabled={submitting}
-              />
-              {labels[ev]}
-            </label>
-          );
-        })}
+      <div className="review-form__radios" role="radiogroup" aria-label="Review type">
+        {events.map((e) => (
+          <label key={e.value} className={`review-form__radio ${draft.event === e.value ? "is-active" : ""}`}>
+            <input
+              className="review-form__radio-input"
+              type="radio"
+              name="review-event"
+              value={e.value}
+              checked={draft.event === e.value}
+              onChange={() => reviewDraftStore.setEvent(e.value)}
+              disabled={submitting}
+            />
+            <span>
+              <span className="review-form__radio-label">{e.label}</span>
+              <div className="review-form__radio-desc">{e.desc}</div>
+            </span>
+          </label>
+        ))}
       </div>
-
-      <div className="review-form__actions">
-        <button className="btn-primary" disabled={submitting} onClick={submit}>
-          {submitting ? "Submitting…" : "Submit review"}
-        </button>
-        {result && (
-          <a href={result.url} target="_blank" rel="noreferrer" className="review-form__gh-link">
-            View on GitHub →
-          </a>
-        )}
-        {error && <span className="error-bar review-form__error">{error}</span>}
-      </div>
+      <button
+        className={`review-form__submit review-form__submit--${eventClass(draft.event)}`}
+        disabled={submitting}
+        onClick={submit}
+      >
+        {submitting ? "Submitting…" : submitLabel(draft.event)}
+      </button>
+      {result && (
+        <div className="review-form__result">
+          <a href={result.url} target="_blank" rel="noreferrer">View on GitHub →</a>
+        </div>
+      )}
+      {error && <div className="error-bar">{error}</div>}
     </div>
   );
 }

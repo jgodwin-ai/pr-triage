@@ -496,23 +496,29 @@ body {
 .chat-panel__input textarea { flex: 1; border: 1px solid #d1d9e0; border-radius: 6px; padding: 6px; font-family: inherit; font-size: 13px; resize: vertical; }
 .file-accordion__chat-toggle { margin-left: 8px; }
 
-/* Phase 1.6: Review form (always-visible, non-sticky) */
-.review-form { background: white; border: 1px solid #d1d9e0; border-radius: 8px; padding: 24px; margin-top: 32px; }
-.review-form__heading { font-size: 18px; font-weight: 600; color: #1f2328; margin-bottom: 16px; }
-.review-form__summary { display: block; margin-bottom: 12px; resize: vertical; min-height: 80px; }
-.review-form__status { font-size: 13px; color: #656d76; margin-bottom: 16px; display: flex; flex-direction: column; gap: 4px; }
-.review-form__stale-warning { color: #9a6700; background: #fff8c5; border: 1px solid #d4a72c; border-radius: 4px; padding: 4px 8px; font-size: 12px; display: inline-block; width: fit-content; }
-.review-form__radio-group { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-.review-form__radio { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: 2px solid #d1d9e0; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #1f2328; transition: border-color 0.15s, background 0.15s; }
-.review-form__radio input[type="radio"] { accent-color: #0969da; }
-.review-form__radio:has(input:checked), .review-form__radio.is-selected { border-color: #0969da; background: #ddf4ff; }
-.review-form__radio--approve:has(input:checked), .review-form__radio--approve.is-selected { border-color: #1f883d; background: #dcffe4; }
-.review-form__radio--request-changes:has(input:checked), .review-form__radio--request-changes.is-selected { border-color: #cf222e; background: #ffebe9; }
+/* Phase 1.6: Review form — GitHub-style */
+.review-form { background: white; border: 1px solid #d1d9e0; border-radius: 8px; padding: 20px 24px; margin: 24px 0; }
+.review-form__heading { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+.review-form__summary { width: 100%; min-height: 100px; border: 1px solid #d1d9e0; border-radius: 6px; padding: 10px 12px; font-family: inherit; font-size: 14px; resize: vertical; }
+.review-form__summary:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.15); }
+.review-form__pending { font-size: 12px; color: #656d76; margin: 12px 0 8px; }
+.review-form__radios { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 16px; }
+.review-form__radio { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 6px; cursor: pointer; }
 .review-form__radio:hover { background: #f6f8fa; }
-.review-form__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.review-form__gh-link { color: #0969da; text-decoration: none; font-size: 13px; }
-.review-form__gh-link:hover { text-decoration: underline; }
-.review-form__error { margin-top: 0; }
+.review-form__radio.is-active { border-color: #0969da; box-shadow: inset 0 0 0 1px #0969da; }
+.review-form__radio-input { margin-top: 3px; }
+.review-form__radio-label { font-weight: 600; font-size: 14px; }
+.review-form__radio-desc { font-size: 12px; color: #656d76; margin-top: 2px; }
+.review-form__submit { width: 100%; padding: 10px 14px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px; color: white; }
+.review-form__submit--comment { background: #0969da; }
+.review-form__submit--comment:hover:not(:disabled) { background: #0860b7; }
+.review-form__submit--approve { background: #1f883d; }
+.review-form__submit--approve:hover:not(:disabled) { background: #1a7f37; }
+.review-form__submit--request-changes { background: #cf222e; }
+.review-form__submit--request-changes:hover:not(:disabled) { background: #a40e26; }
+.review-form__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.review-form__result { margin-top: 12px; font-size: 13px; }
+.review-form__stale { background: #fff8c5; border: 1px solid #d4a72c; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
 
 /* Phase 1.6: Scroll hint */
 .scroll-hint { position: fixed; right: 24px; bottom: 24px; background: #0969da; color: white; border: none; border-radius: 999px; padding: 10px 16px; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; z-index: 20; }

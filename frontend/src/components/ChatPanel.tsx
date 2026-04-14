@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { renderEmoji } from "../utils/emoji.js";
 
 interface Message { role: "user" | "assistant"; content: string; }
 
@@ -49,7 +50,7 @@ export default function ChatPanel({ filePath, diff, summary }: Props) {
         {messages.map((m, i) => (
           <div key={i} className={`chat-message chat-message--${m.role}`}>
             <strong>{m.role === "user" ? "You" : "AI"}</strong>
-            <p>{m.content}</p>
+            <p>{renderEmoji(m.content)}</p>
           </div>
         ))}
         {sending && <div className="chat-message chat-message--assistant"><em>Thinking…</em></div>}

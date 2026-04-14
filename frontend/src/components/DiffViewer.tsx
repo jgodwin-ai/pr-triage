@@ -9,8 +9,18 @@ import "prismjs/themes/prism.css";
 
 refractor.register(jsxLang);
 refractor.register(tsxLang);
+
+// react-diff-view v3 expects refractor.highlight() to return an array of children
+// (old refractor API). v5 returns a `{type:'root', children:[]}` node — shim it.
+const refractorShim = {
+  highlight: (text: string, lang: string) => {
+    const root = refractor.highlight(text, lang) as any;
+    return root?.children ?? [];
+  },
+};
 import type { FileAnalysis } from "../types.js";
 import type { AnnotationFilter } from "./AnnotationFilterBar.js";
+import { renderEmoji } from "../utils/emoji.js";
 import DiffLineAnnotation from "./DiffLineAnnotation.js";
 import CommentThread from "./CommentThread.js";
 import CommentBox from "./CommentBox.js";
@@ -50,7 +60,7 @@ export default function DiffViewer({ clusterId, file, filter }: Props) {
   const tokens = useMemo(() => {
     if (!files[0]) return undefined;
     try {
-      return tokenize(files[0].hunks, { highlight: true, refractor, language: detectLanguage(file.path) });
+      return tokenize(files[0].hunks, { highlight: true, refractor: refractorShim, language: detectLanguage(file.path) });
     } catch { return undefined; }
   }, [files, file.path]);
 
@@ -82,7 +92,7 @@ export default function DiffViewer({ clusterId, file, filter }: Props) {
       const key = side === "RIGHT" ? `I${line}` : `D${line}`;
       const node = (
         <div key={c.id} className="diff-line-comment">
-          <p>{c.body}</p>
+          <p>{renderEmoji(c.body)}</p>
           <div className="comment__actions">
             <button className="btn-link" onClick={() => reviewDraftStore.removeComment(c.id)}>Delete</button>
           </div>

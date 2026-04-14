@@ -14,7 +14,7 @@ describe("ReviewSubmitBar", () => {
 
   it("shows zero-state (always visible, zero comments)", () => {
     render(<ReviewSubmitBar prUrl="https://github.com/x/y/pull/1" />);
-    expect(screen.getByText(/finish review/i)).toBeTruthy();
+    expect(screen.getByText(/finish your review/i)).toBeTruthy();
     expect(screen.getByText(/0 comments/i)).toBeTruthy();
   });
 
@@ -45,7 +45,7 @@ describe("ReviewSubmitBar", () => {
     // The simplest approach: check the warning text appears for stale comments
     render(<ReviewSubmitBar prUrl="https://github.com/x/y/pull/1" />);
     // No stale comments right now; warning should not show
-    expect(screen.queryByText(/from a previous commit/i)).toBeNull();
+    expect(screen.queryByText(/from an earlier commit/i)).toBeNull();
   });
 
   it("renders radio buttons for review event", () => {

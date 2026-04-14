@@ -3,6 +3,7 @@ import type { CommentTarget } from "../types.js";
 import { reviewDraftStore } from "../state/reviewDraft.js";
 import { useReviewDraft } from "../hooks/useReviewDraft.js";
 import CommentBox from "./CommentBox.js";
+import { renderEmoji } from "../utils/emoji.js";
 
 interface Props {
   target: CommentTarget;
@@ -29,7 +30,7 @@ export default function CommentThread({ target, title }: Props) {
             />
           ) : (
             <>
-              <p>{c.body}</p>
+              <p>{renderEmoji(c.body)}</p>
               <div className="comment__actions">
                 <button className="btn-link" onClick={() => setEditingId(c.id)}>Edit</button>
                 <button className="btn-link" onClick={() => reviewDraftStore.removeComment(c.id)}>Delete</button>
