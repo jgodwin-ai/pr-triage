@@ -106,7 +106,7 @@ describe("fetchPR", () => {
     expect(result.metadata.author).toBe("unknown");
   });
 
-  it("filters out binary files (patch undefined)", async () => {
+  it("includes files without patches with a placeholder", async () => {
     const mockOctokit = {
       rest: {
         pulls: {
@@ -135,8 +135,11 @@ describe("fetchPR", () => {
       mockOctokit as any
     );
 
-    expect(result.files).toHaveLength(1);
-    expect(result.files[0].filename).toBe("src/app.ts");
+    expect(result.files).toHaveLength(2);
+    const bin = result.files.find((f) => f.filename === "logo.png");
+    expect(bin?.patch).toMatch(/No diff available/);
+    const code = result.files.find((f) => f.filename === "src/app.ts");
+    expect(code?.patch).toBe("@@ diff @@");
   });
 
   it("paginates when more than 100 files", async () => {

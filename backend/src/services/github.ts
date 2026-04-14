@@ -35,9 +35,10 @@ export async function fetchPR(
   const allFilesRaw = await octokit.paginate(octokit.rest.pulls.listFiles, {
     owner, repo, pull_number: pullNumber, per_page: 100,
   });
-  const allFiles: Array<{ filename: string; patch: string }> = allFilesRaw
-    .filter((f: any) => f.patch)
-    .map((f: any) => ({ filename: f.filename, patch: f.patch }));
+  const allFiles: Array<{ filename: string; patch: string }> = allFilesRaw.map((f: any) => ({
+    filename: f.filename,
+    patch: f.patch ?? `[No diff available — ${f.status ?? "changed"}, ${f.changes ?? 0} changes (binary or truncated by GitHub)]`,
+  }));
 
   const metadata: PRMetadata = {
     url: `https://github.com/${owner}/${repo}/pull/${pullNumber}`,
