@@ -5,3 +5,8 @@ dist/
 *.log
 *.png
 .playwright-mcp/
+
+# build artifacts
+backend/.cache/
+coverage/
+.nyc_output/
