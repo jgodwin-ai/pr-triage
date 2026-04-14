@@ -5,15 +5,15 @@ import { fileURLToPath } from "url";
 import configRouter from "./routes/config.js";
 import analyzeRouter, { setAnalysis } from "./routes/analyze.js";
 import reviewRouter from "./routes/review.js";
+import chatRouter from "./routes/chat.js";
 import { setupWebSocket, broadcast } from "./ws.js";
 import { parsePrUrl, fetchPR, createOctokit } from "./services/github.js";
 import { analyzeFilesBatch } from "./services/agents/file-analyzer-batch.js";
 import { clusterFiles } from "./services/agents/clustering.js";
 import { rankAndSynthesize } from "./services/agents/ranking.js";
 import { runPipeline } from "./services/pipeline.js";
-import { ClaudeCliClient } from "./services/claude-cli-client.js";
-import { AnthropicSdkClient } from "./services/anthropic-sdk-client.js";
 import type { LLMClient } from "./services/llm-client.js";
+import { createLLMClient } from "./services/create-llm-client.js";
 import { AnalysisCache } from "./services/analysis-cache.js";
 
 const app = express();
@@ -23,6 +23,7 @@ app.use("/api/config", configRouter);
 app.use("/api/analyze", analyzeRouter);
 app.use("/api/analysis", analyzeRouter);
 app.use("/api/review", reviewRouter);
+app.use("/api/chat", chatRouter);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -35,18 +36,6 @@ const wss = setupWebSocket(httpServer);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cacheDir = process.env.ANALYSIS_CACHE_DIR ?? path.join(__dirname, "..", ".cache", "analyses");
 const analysisCache = new AnalysisCache(cacheDir);
-
-/**
- * Create the LLM client based on available config.
- * Priority: explicit API key > env var > Claude CLI
- */
-function createLLMClient(anthropicKey?: string): LLMClient {
-  const key = anthropicKey || process.env.ANTHROPIC_API_KEY;
-  if (key) {
-    return new AnthropicSdkClient(key);
-  }
-  return new ClaudeCliClient();
-}
 
 // Wire up the pipeline launcher
 app.locals.startPipeline = async (

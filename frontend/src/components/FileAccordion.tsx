@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FileAnalysis } from "../types.js";
 import type { AnnotationFilter } from "./AnnotationFilterBar.js";
 import DiffViewer from "./DiffViewer.js";
+import ChatPanel from "./ChatPanel.js";
 
 interface Props {
   clusterId: string;
@@ -12,6 +13,7 @@ interface Props {
 
 export default function FileAccordion({ clusterId, file, filter, defaultOpen = false }: Props) {
   const [open, setOpen] = useState(defaultOpen);
+  const [chatOpen, setChatOpen] = useState(false);
   const annotationCount = file.annotations.length;
 
   return (
@@ -30,10 +32,18 @@ export default function FileAccordion({ clusterId, file, filter, defaultOpen = f
           {file.category} · impact {file.impactScore}/5
           {annotationCount > 0 && ` · ${annotationCount} annotation${annotationCount === 1 ? "" : "s"}`}
         </span>
+        <button
+          type="button"
+          className="btn-link file-accordion__chat-toggle"
+          onClick={(e) => { e.stopPropagation(); setChatOpen(!chatOpen); }}
+        >
+          {chatOpen ? "Close chat" : "Chat"}
+        </button>
       </header>
       {open && (
         <div className="file-accordion__body">
           <DiffViewer clusterId={clusterId} file={file} filter={filter} />
+          {chatOpen && <ChatPanel filePath={file.path} diff={file.diff} summary={file.summary} />}
         </div>
       )}
     </section>
