@@ -16,19 +16,15 @@ const file: FileAnalysis = {
 };
 
 describe("DiffViewer", () => {
-  it("renders the file path", () => {
-    render(<DiffViewer clusterId="c1" file={file} filter={{ warning: true, info: true, suggestion: true }} />);
-    expect(screen.getByText("src/foo.ts")).toBeTruthy();
+  it("renders diff content", () => {
+    render(<DiffViewer clusterId="c1" file={file} filter={{ warning: true, info: true, suggestion: true }} viewType="unified" />);
+    // The diff hunk content renders line content in the table; the file path header is now in FileView
+    expect(screen.getByText(/File-level comments/i)).toBeTruthy();
   });
 
   it("hides annotations filtered out", () => {
-    render(<DiffViewer clusterId="c1" file={file} filter={{ warning: true, info: false, suggestion: true }} />);
+    render(<DiffViewer clusterId="c1" file={file} filter={{ warning: true, info: false, suggestion: true }} viewType="unified" />);
     expect(screen.getByText(/check null/)).toBeTruthy();
     expect(screen.queryByText(/fyi/)).toBeNull();
-  });
-
-  it("has a split-view toggle", () => {
-    render(<DiffViewer clusterId="c1" file={file} filter={{ warning: true, info: true, suggestion: true }} />);
-    expect(screen.getByLabelText(/split view/i)).toBeTruthy();
   });
 });

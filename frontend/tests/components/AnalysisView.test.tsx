@@ -75,4 +75,11 @@ describe("AnalysisView", () => {
     expect(screen.queryByText("Change Clusters")).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).toBeNull();
   });
+
+  it("renders exactly one global annotation filter bar", () => {
+    const analysis = makeAnalysis();
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+    const toolbars = screen.getAllByRole("toolbar", { name: /annotation filters/i });
+    expect(toolbars).toHaveLength(1);
+  });
 });

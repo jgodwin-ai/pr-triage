@@ -1,5 +1,4 @@
 import { useMemo, useState, type ReactNode } from "react";
-// @ts-expect-error — react-diff-view is not typed against latest React 18 in this repo
 import { parseDiff, Diff, Hunk, tokenize } from "react-diff-view";
 import { refractor } from "refractor";
 import jsxLang from "refractor/jsx";
@@ -31,6 +30,7 @@ interface Props {
   clusterId: string;
   file: FileAnalysis;
   filter: AnnotationFilter;
+  viewType: "unified" | "split";
 }
 
 function detectLanguage(path: string): string {
@@ -43,8 +43,7 @@ function detectLanguage(path: string): string {
   return map[ext] ?? "text";
 }
 
-export default function DiffViewer({ clusterId, file, filter }: Props) {
-  const [viewType, setViewType] = useState<"unified" | "split">("unified");
+export default function DiffViewer({ clusterId, file, filter, viewType }: Props) {
   const [lineCommentTarget, setLineCommentTarget] = useState<{ changeKey: string; line: number; side: "LEFT" | "RIGHT" } | null>(null);
   const draft = useReviewDraft(); // re-render when store changes
 
@@ -133,20 +132,6 @@ export default function DiffViewer({ clusterId, file, filter }: Props) {
 
   return (
     <div className="diff-viewer">
-      <div className="diff-viewer__header">
-        <h4 className="diff-viewer__path">{file.path}</h4>
-        <label className="diff-viewer__view-toggle">
-          <input
-            type="checkbox"
-            aria-label="Split view"
-            checked={viewType === "split"}
-            onChange={(e) => setViewType(e.target.checked ? "split" : "unified")}
-          />
-          Split view
-        </label>
-      </div>
-      <p className="diff-meta">{file.summary} · {file.category} · impact {file.impactScore}/5</p>
-
       <CommentThread target={{ kind: "file", clusterId, path: file.path }} title="File-level comments" />
 
       {files[0] ? (

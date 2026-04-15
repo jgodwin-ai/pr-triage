@@ -448,9 +448,6 @@ body {
 
 /* Phase 1.5: Diff viewer */
 .diff-viewer { margin: 16px 0; border: 1px solid #d1d9e0; border-radius: 8px; overflow: hidden; background: white; }
-.diff-viewer__header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; }
-.diff-viewer__path { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; margin: 0; }
-.diff-viewer__view-toggle { font-size: 12px; display: flex; gap: 6px; align-items: center; cursor: pointer; color: #656d76; }
 .diff-viewer__fallback { padding: 12px; font-size: 12px; overflow: auto; background: #f6f8fa; margin: 0; }
 .diff-viewer__fallback-annotations { padding: 12px; }
 .diff-viewer__line-comment { padding: 8px 12px; border-top: 1px dashed #d1d9e0; background: #f6f8fa; }
@@ -556,10 +553,13 @@ body {
 .file-view__path { font-family: ui-monospace, monospace; font-size: 13px; font-weight: 600; }
 .file-view__meta { font-size: 12px; color: #656d76; }
 .file-view__viewed-toggle { margin-left: auto; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #656d76; }
+.file-view__view-type-toggle { font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #656d76; }
 .file-view__body { padding: 0; }
 .file-view .diff-viewer { margin: 0; border: none; border-radius: 0; }
-.file-view__filters { padding: 8px 16px; border-top: 1px solid #d1d9e0; border-bottom: 1px solid #d1d9e0; background: #fafbfc; }
 .file-view__chat { padding: 12px 16px; border-top: 1px solid #d1d9e0; background: #fafbfc; }
+
+/* Phase 1.6: Global annotation filter bar */
+.analysis-main__filter-bar { position: sticky; top: 0; background: #f6f8fa; border-bottom: 1px solid #d1d9e0; padding: 10px 16px; z-index: 5; max-width: 1100px; margin-left: auto; margin-right: auto; }
 
 /* Prism token colors — higher specificity to beat react-diff-view defaults */
 .diff-code .token.comment, .diff-code .token.prolog, .diff-code .token.doctype, .diff-code .token.cdata { color: #6a737d; font-style: italic; }
