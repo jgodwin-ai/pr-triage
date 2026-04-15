@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import type { ChangeCluster, FileAnalysis } from "../types.js";
 import DiffViewer from "./DiffViewer.js";
-import ChatPanel from "./ChatPanel.js";
 import { viewedStore } from "../state/viewedStore.js";
+import { activeFileStore } from "../state/activeFileStore.js";
 import { useViewed } from "../hooks/useViewed.js";
 import { useAnnotationFilter } from "../hooks/useAnnotationFilter.js";
 
@@ -19,6 +19,7 @@ export default function FileView({ cluster, file }: Props) {
   const viewed = viewedStore.isViewed(cluster.id, file.path);
   const fileId = `file-${cluster.id}-${encodeURIComponent(file.path)}`;
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const autoViewedRef = useRef(false);
 
   // Sync autoViewedRef when already viewed (e.g. loaded from persisted store)
@@ -46,6 +47,24 @@ export default function FileView({ cluster, file }: Props) {
     return () => observer.disconnect();
   }, [cluster.id, file.path]);
 
+  // IntersectionObserver on section: track active file for the right-rail chat
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          activeFileStore.set({ activeClusterId: cluster.id, activeFilePath: file.path });
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [cluster.id, file.path]);
+
   const toggleViewed = () => {
     if (viewed) {
       autoViewedRef.current = false;
@@ -60,6 +79,7 @@ export default function FileView({ cluster, file }: Props) {
     <section
       id={fileId}
       className="file-view"
+      ref={sectionRef}
     >
       <div className="file-view__header">
         <span className="file-view__path">{file.path}</span>
@@ -89,9 +109,6 @@ export default function FileView({ cluster, file }: Props) {
 
       <div className="file-view__body">
         <DiffViewer clusterId={cluster.id} file={file} filter={filter} viewType={viewType} />
-        <div className="file-view__chat">
-          <ChatPanel filePath={file.path} diff={file.diff} summary={file.summary} />
-        </div>
       </div>
 
       {/* Bottom sentinel: observed to fire markViewed when user scrolls past this file */}

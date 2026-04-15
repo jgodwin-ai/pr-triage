@@ -1,10 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import AnalysisView from "../../src/components/AnalysisView.js";
+import { activeClusterStore } from "../../src/state/activeClusterStore.js";
 import { makeAnalysis, makeCluster, makeFileAnalysis } from "../helpers.js";
+
+function makeLocalStorageMock() {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => { store[key] = value; },
+    removeItem: (key: string) => { delete store[key]; },
+    clear: () => { store = {}; },
+    get length() { return Object.keys(store).length; },
+    key: (i: number) => Object.keys(store)[i] ?? null,
+  };
+}
 
 // Stub IntersectionObserver for jsdom
 beforeEach(() => {
+  vi.stubGlobal("localStorage", makeLocalStorageMock());
   vi.stubGlobal(
     "IntersectionObserver",
     vi.fn().mockImplementation(() => ({
@@ -13,6 +27,12 @@ beforeEach(() => {
       disconnect: vi.fn(),
     })),
   );
+  // Reset active cluster between tests
+  activeClusterStore.set(null);
+});
+
+afterEach(() => {
+  activeClusterStore.set(null);
 });
 
 describe("AnalysisView", () => {
@@ -44,7 +64,7 @@ describe("AnalysisView", () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it("renders one file-view per file across all clusters", () => {
+  it("renders only files of the active cluster (first cluster by default)", () => {
     const analysis = makeAnalysis({
       clusters: [
         makeCluster({
@@ -63,10 +83,41 @@ describe("AnalysisView", () => {
       ],
     });
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    // Each file-view has the file path in header
+    // First cluster's files should be visible
     expect(document.getElementById("file-c1-" + encodeURIComponent("src/foo.ts"))).toBeTruthy();
     expect(document.getElementById("file-c1-" + encodeURIComponent("src/bar.ts"))).toBeTruthy();
+    // Second cluster's files should NOT be visible
+    expect(document.getElementById("file-c2-" + encodeURIComponent("src/baz.ts"))).toBeNull();
+  });
+
+  it("switches visible files when active cluster changes", () => {
+    const analysis = makeAnalysis({
+      clusters: [
+        makeCluster({
+          id: "c1",
+          name: "Cluster A",
+          files: [makeFileAnalysis({ path: "src/foo.ts" })],
+        }),
+        makeCluster({
+          id: "c2",
+          name: "Cluster B",
+          files: [makeFileAnalysis({ path: "src/baz.ts" })],
+        }),
+      ],
+    });
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+
+    // Initially c1 files shown
+    expect(document.getElementById("file-c1-" + encodeURIComponent("src/foo.ts"))).toBeTruthy();
+    expect(document.getElementById("file-c2-" + encodeURIComponent("src/baz.ts"))).toBeNull();
+
+    // Switch active cluster to c2
+    act(() => {
+      activeClusterStore.set("c2");
+    });
+
     expect(document.getElementById("file-c2-" + encodeURIComponent("src/baz.ts"))).toBeTruthy();
+    expect(document.getElementById("file-c1-" + encodeURIComponent("src/foo.ts"))).toBeNull();
   });
 
   it("does not render breadcrumbs or old cluster accordion heading", () => {
@@ -81,5 +132,12 @@ describe("AnalysisView", () => {
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
     const toolbars = screen.getAllByRole("toolbar", { name: /annotation filters/i });
     expect(toolbars).toHaveLength(1);
+  });
+
+  it("renders the right rail chat panel", () => {
+    const analysis = makeAnalysis();
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+    // Right rail collapse button should be present
+    expect(screen.getByRole("button", { name: /collapse chat panel/i })).toBeTruthy();
   });
 });

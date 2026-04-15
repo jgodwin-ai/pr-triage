@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import AnalysisSidebar from "../../src/components/AnalysisSidebar.js";
 import { viewedStore } from "../../src/state/viewedStore.js";
-import { reviewDraftStore } from "../../src/state/reviewDraft.js";
+import { activeClusterStore } from "../../src/state/activeClusterStore.js";
 import { makeCluster, makeFileAnalysis } from "../helpers.js";
 
 function makeLocalStorageMock() {
@@ -20,11 +20,11 @@ function makeLocalStorageMock() {
 beforeEach(() => {
   vi.stubGlobal("localStorage", makeLocalStorageMock());
   viewedStore.loadFor("https://github.com/test/repo/pull/1", "sha-test");
-  reviewDraftStore.reset();
+  activeClusterStore.set(null);
 });
 
 describe("AnalysisSidebar", () => {
-  it("renders cluster names and file paths", () => {
+  it("renders cluster names (no nested file paths)", () => {
     const cluster = makeCluster({
       id: "c1",
       name: "Auth refactor",
@@ -35,103 +35,92 @@ describe("AnalysisSidebar", () => {
     });
     render(<AnalysisSidebar clusters={[cluster]} />);
     expect(screen.getByText("Auth refactor")).toBeTruthy();
-    expect(screen.getByText("src/auth.ts")).toBeTruthy();
-    expect(screen.getByText("src/login.ts")).toBeTruthy();
+    // File paths should NOT appear in the sidebar anymore
+    expect(screen.queryByText("src/auth.ts")).toBeNull();
+    expect(screen.queryByText("src/login.ts")).toBeNull();
   });
 
-  it("shows annotation count badge for files with annotations", () => {
+  it("shows viewed count per cluster", () => {
     const cluster = makeCluster({
       id: "c1",
+      name: "Auth refactor",
       files: [
-        makeFileAnalysis({
-          path: "src/foo.ts",
-          annotations: [
-            { lineStart: 1, lineEnd: 2, type: "warning", message: "oops" },
-          ],
-        }),
-      ],
-    });
-    render(<AnalysisSidebar clusters={[cluster]} />);
-    expect(screen.getByText(/⚠/)).toBeTruthy();
-  });
-
-  it("does not show annotation badge when count is 0", () => {
-    const cluster = makeCluster({
-      id: "c1",
-      files: [makeFileAnalysis({ path: "src/clean.ts", annotations: [] })],
-    });
-    render(<AnalysisSidebar clusters={[cluster]} />);
-    expect(screen.queryByText(/⚠/)).toBeNull();
-  });
-
-  it("shows comment count badge when draft comments exist for the file", () => {
-    const cluster = makeCluster({
-      id: "c1",
-      files: [makeFileAnalysis({ path: "src/foo.ts", annotations: [] })],
-    });
-
-    reviewDraftStore.loadFor("https://github.com/test/repo/pull/1", "sha-test");
-    reviewDraftStore.addComment(
-      { kind: "file", clusterId: "c1", path: "src/foo.ts" },
-      "test comment",
-    );
-
-    render(<AnalysisSidebar clusters={[cluster]} />);
-    expect(screen.getByText(/💬/)).toBeTruthy();
-  });
-
-  it("toggles viewed state when checkbox is clicked", () => {
-    const cluster = makeCluster({
-      id: "c1",
-      files: [makeFileAnalysis({ path: "src/foo.ts", annotations: [] })],
-    });
-    render(<AnalysisSidebar clusters={[cluster]} />);
-
-    expect(viewedStore.isViewed("c1", "src/foo.ts")).toBe(false);
-
-    const checkbox = screen.getByRole("checkbox", { name: /mark src\/foo\.ts as viewed/i });
-    fireEvent.click(checkbox);
-
-    expect(viewedStore.isViewed("c1", "src/foo.ts")).toBe(true);
-  });
-
-  it("file row gets is-viewed class when viewed", () => {
-    const cluster = makeCluster({
-      id: "c1",
-      files: [makeFileAnalysis({ path: "src/foo.ts", annotations: [] })],
-    });
-    viewedStore.markViewed("c1", "src/foo.ts");
-    const { container } = render(<AnalysisSidebar clusters={[cluster]} />);
-    const row = container.querySelector(".sidebar-file");
-    expect(row?.classList.contains("is-viewed")).toBe(true);
-  });
-
-  it("shows progress pill in cluster header", () => {
-    const cluster = makeCluster({
-      id: "c1",
-      files: [
-        makeFileAnalysis({ path: "src/a.ts", annotations: [] }),
-        makeFileAnalysis({ path: "src/b.ts", annotations: [] }),
+        makeFileAnalysis({ path: "src/a.ts" }),
+        makeFileAnalysis({ path: "src/b.ts" }),
       ],
     });
     viewedStore.markViewed("c1", "src/a.ts");
     render(<AnalysisSidebar clusters={[cluster]} />);
-    // 1/2 viewed — appears in cluster count pill
+    // 1/2 viewed count in cluster row
     const countEls = screen.getAllByText(/1\/2/);
     expect(countEls.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("collapses cluster on header click", () => {
+  it("shows total viewed count in header", () => {
+    const clusters = [
+      makeCluster({
+        id: "c1",
+        files: [
+          makeFileAnalysis({ path: "src/a.ts" }),
+          makeFileAnalysis({ path: "src/b.ts" }),
+        ],
+      }),
+    ];
+    viewedStore.markViewed("c1", "src/a.ts");
+    render(<AnalysisSidebar clusters={clusters} />);
+    expect(screen.getByText(/1\/2 viewed/)).toBeTruthy();
+  });
+
+  it("clicking a cluster row sets it as active", () => {
+    const cluster = makeCluster({ id: "c1", name: "Auth refactor" });
+    render(<AnalysisSidebar clusters={[cluster]} />);
+
+    expect(activeClusterStore.get()).toBeNull();
+
+    const row = screen.getByRole("button", { name: /auth refactor/i });
+    fireEvent.click(row);
+
+    expect(activeClusterStore.get()).toBe("c1");
+  });
+
+  it("active cluster has is-active class", () => {
+    const cluster = makeCluster({ id: "c1", name: "Auth refactor" });
+    activeClusterStore.set("c1");
+    const { container } = render(<AnalysisSidebar clusters={[cluster]} />);
+    const row = container.querySelector(".sidebar-cluster-row");
+    expect(row?.classList.contains("is-active")).toBe(true);
+  });
+
+  it("inactive cluster does not have is-active class", () => {
+    const clusters = [
+      makeCluster({ id: "c1", name: "Cluster A" }),
+      makeCluster({ id: "c2", name: "Cluster B" }),
+    ];
+    activeClusterStore.set("c1");
+    const { container } = render(<AnalysisSidebar clusters={clusters} />);
+    const rows = container.querySelectorAll(".sidebar-cluster-row");
+    expect(rows[0]?.classList.contains("is-active")).toBe(true);
+    expect(rows[1]?.classList.contains("is-active")).toBe(false);
+  });
+
+  it("shows warning badge for cluster with high-impact files", () => {
     const cluster = makeCluster({
       id: "c1",
-      files: [makeFileAnalysis({ path: "src/foo.ts", annotations: [] })],
+      name: "Risky",
+      files: [makeFileAnalysis({ path: "src/x.ts", impactScore: 4, annotations: [] })],
     });
     render(<AnalysisSidebar clusters={[cluster]} />);
-    // File is visible initially
-    expect(screen.getByText("src/foo.ts")).toBeTruthy();
-    // Click the cluster header to collapse
-    const header = screen.getByRole("button", { name: /core logic changes/i });
-    fireEvent.click(header);
-    expect(screen.queryByText("src/foo.ts")).toBeNull();
+    expect(screen.getByText("⚠")).toBeTruthy();
+  });
+
+  it("shows all-viewed checkmark when all files viewed", () => {
+    const cluster = makeCluster({
+      id: "c1",
+      name: "Done cluster",
+      files: [makeFileAnalysis({ path: "src/a.ts" })],
+    });
+    viewedStore.markViewed("c1", "src/a.ts");
+    render(<AnalysisSidebar clusters={[cluster]} />);
+    expect(screen.getByText(/✓/)).toBeTruthy();
   });
 });
