@@ -140,4 +140,21 @@ describe("AnalysisView", () => {
     // Right rail collapse button should be present
     expect(screen.getByRole("button", { name: /collapse chat panel/i })).toBeTruthy();
   });
+
+  it("does not render ReviewSubmitBar in the main pane", () => {
+    const analysis = makeAnalysis();
+    const { container } = render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+    const main = container.querySelector(".analysis-main");
+    expect(main).toBeTruthy();
+    // review-form should NOT be a child of analysis-main
+    expect(main!.querySelector(".review-form")).toBeNull();
+  });
+
+  it("renders review form in the right rail when Review tab is clicked", () => {
+    const analysis = makeAnalysis();
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+    const reviewTabBtn = screen.getByRole("button", { name: /^review/i });
+    fireEvent.click(reviewTabBtn);
+    expect(screen.getByText(/finish your review/i)).toBeTruthy();
+  });
 });

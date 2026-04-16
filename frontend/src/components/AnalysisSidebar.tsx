@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { ChangeCluster } from "../types.js";
 import { viewedStore } from "../state/viewedStore.js";
 import { activeClusterStore } from "../state/activeClusterStore.js";
@@ -6,9 +7,10 @@ import { useActiveCluster } from "../hooks/useActiveCluster.js";
 
 interface Props {
   clusters: ChangeCluster[];
+  style?: CSSProperties;
 }
 
-export default function AnalysisSidebar({ clusters }: Props) {
+export default function AnalysisSidebar({ clusters, style }: Props) {
   useViewed(); // subscribe to viewed store for re-renders
   const activeClusterId = useActiveCluster();
 
@@ -19,7 +21,7 @@ export default function AnalysisSidebar({ clusters }: Props) {
   );
 
   return (
-    <aside className="analysis-sidebar">
+    <aside className="analysis-sidebar" style={style}>
       <div className="analysis-sidebar__header">
         <div className="analysis-sidebar__title">Clusters</div>
         <div className="analysis-sidebar__meta">

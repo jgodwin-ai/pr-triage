@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import RightRail from "../../src/components/RightRail.js";
 import { activeFileStore } from "../../src/state/activeFileStore.js";
+import { reviewDraftStore } from "../../src/state/reviewDraft.js";
 import { makeAnalysis, makeCluster, makeFileAnalysis } from "../helpers.js";
 
 function makeLocalStorageMock() {
@@ -16,39 +17,90 @@ function makeLocalStorageMock() {
   };
 }
 
+const analysis = makeAnalysis({
+  clusters: [
+    makeCluster({
+      id: "c1",
+      files: [makeFileAnalysis({ path: "src/active.ts" })],
+    }),
+  ],
+});
+
+const prUrl = analysis.pr.url;
+
 beforeEach(() => {
   vi.stubGlobal("localStorage", makeLocalStorageMock());
   activeFileStore.set({ activeFilePath: null, activeClusterId: null });
+  reviewDraftStore.reset();
 });
 
 describe("RightRail", () => {
-  const analysis = makeAnalysis({
-    clusters: [
-      makeCluster({
-        id: "c1",
-        files: [makeFileAnalysis({ path: "src/active.ts" })],
-      }),
-    ],
-  });
-
   it("renders the collapse toggle button", () => {
-    render(<RightRail analysis={analysis} />);
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
     expect(screen.getByRole("button", { name: /collapse chat panel/i })).toBeTruthy();
   });
 
-  it("shows active file path in header when file is active", () => {
+  it("renders Chat and Review tabs", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    expect(screen.getByRole("button", { name: /^chat$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^review/i })).toBeTruthy();
+  });
+
+  it("shows chat content by default", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    expect(screen.getByText(/no file selected/i)).toBeTruthy();
+  });
+
+  it("switches to Review tab and shows review form", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    const reviewBtn = screen.getByRole("button", { name: /^review/i });
+    fireEvent.click(reviewBtn);
+    expect(screen.getByText(/finish your review/i)).toBeTruthy();
+  });
+
+  it("switches back from Review to Chat tab", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    // go to review
+    fireEvent.click(screen.getByRole("button", { name: /^review/i }));
+    expect(screen.getByText(/finish your review/i)).toBeTruthy();
+    // go back to chat
+    fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
+    expect(screen.getByText(/no file selected/i)).toBeTruthy();
+  });
+
+  it("shows pending count badge on Review tab when there are pending comments", () => {
+    act(() => {
+      reviewDraftStore.addComment(
+        { kind: "file", clusterId: "c1", path: "src/active.ts" },
+        "test comment",
+      );
+    });
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    // Badge with count 1 should appear near Review button
+    const badge = document.querySelector(".right-rail__tab-badge");
+    expect(badge).toBeTruthy();
+    expect(badge?.textContent).toBe("1");
+  });
+
+  it("does not show badge when no pending comments", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    const badge = document.querySelector(".right-rail__tab-badge");
+    expect(badge).toBeNull();
+  });
+
+  it("shows active file path in chat header when file is active", () => {
     act(() => {
       activeFileStore.set({ activeFilePath: "src/active.ts", activeClusterId: "c1" });
     });
-    render(<RightRail analysis={analysis} />);
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
     expect(screen.getByText("src/active.ts")).toBeTruthy();
   });
 
-  it("shows muted hint text", () => {
+  it("shows muted hint text in chat tab", () => {
     act(() => {
       activeFileStore.set({ activeFilePath: "src/active.ts", activeClusterId: "c1" });
     });
-    render(<RightRail analysis={analysis} />);
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
     expect(screen.getByText(/scroll up in the main pane/i)).toBeTruthy();
   });
 
@@ -56,7 +108,7 @@ describe("RightRail", () => {
     act(() => {
       activeFileStore.set({ activeFilePath: "src/active.ts", activeClusterId: "c1" });
     });
-    const { container } = render(<RightRail analysis={analysis} />);
+    const { container } = render(<RightRail analysis={analysis} prUrl={prUrl} />);
 
     // Initially expanded — inner content visible
     expect(container.querySelector(".right-rail__inner")).toBeTruthy();
@@ -71,7 +123,7 @@ describe("RightRail", () => {
   });
 
   it("re-expand shows inner body again", () => {
-    const { container } = render(<RightRail analysis={analysis} />);
+    const { container } = render(<RightRail analysis={analysis} prUrl={prUrl} />);
 
     const btn = screen.getByRole("button", { name: /collapse chat panel/i });
     fireEvent.click(btn); // collapse
@@ -81,8 +133,8 @@ describe("RightRail", () => {
     expect(container.querySelector(".right-rail__inner")).toBeTruthy();
   });
 
-  it("shows empty state when no file is active", () => {
-    render(<RightRail analysis={analysis} />);
+  it("shows empty state when no file is active (in chat tab)", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
     expect(screen.getByText(/no file selected/i)).toBeTruthy();
   });
 });
