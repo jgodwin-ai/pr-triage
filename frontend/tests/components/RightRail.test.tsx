@@ -40,21 +40,34 @@ describe("RightRail", () => {
     expect(screen.getByRole("button", { name: /collapse chat panel/i })).toBeTruthy();
   });
 
-  it("renders Chat and Review tabs", () => {
+  it("renders Summary, Review, and Chat tabs", () => {
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
-    expect(screen.getByRole("button", { name: /^chat$/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^summary$/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^review/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^chat$/i })).toBeTruthy();
   });
 
-  it("defaults to Review tab when localStorage is empty", () => {
+  it("defaults to Summary tab when localStorage is empty", () => {
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
-    expect(screen.getByText(/finish your review/i)).toBeTruthy();
+    // Executive summary content should be visible on the summary tab
+    expect(screen.getByText(analysis.pr.title)).toBeTruthy();
+  });
+
+  it("Summary tab renders executive summary content", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    expect(screen.getByText(analysis.executiveSummary)).toBeTruthy();
   });
 
   it("restores saved chat tab from localStorage", () => {
     localStorage.setItem("pr-triage:rightRailTab", "chat");
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
     expect(screen.getByText(/no file selected/i)).toBeTruthy();
+  });
+
+  it("restores saved review tab from localStorage", () => {
+    localStorage.setItem("pr-triage:rightRailTab", "review");
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    expect(screen.getByText(/finish your review/i)).toBeTruthy();
   });
 
   it("switches to Chat tab and shows chat content", () => {
@@ -64,21 +77,20 @@ describe("RightRail", () => {
   });
 
   it("switches to Review tab and shows review form", () => {
-    localStorage.setItem("pr-triage:rightRailTab", "chat");
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
     const reviewBtn = screen.getByRole("button", { name: /^review/i });
     fireEvent.click(reviewBtn);
     expect(screen.getByText(/finish your review/i)).toBeTruthy();
   });
 
-  it("switches back from Review to Chat tab", () => {
+  it("switches back from Review to Summary tab", () => {
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
-    // already on review by default; go to chat
-    fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
-    expect(screen.getByText(/no file selected/i)).toBeTruthy();
-    // switch back to review
+    // go to review
     fireEvent.click(screen.getByRole("button", { name: /^review/i }));
     expect(screen.getByText(/finish your review/i)).toBeTruthy();
+    // switch back to summary
+    fireEvent.click(screen.getByRole("button", { name: /^summary$/i }));
+    expect(screen.getByText(analysis.pr.title)).toBeTruthy();
   });
 
   it("shows pending count badge on Review tab when there are pending comments", () => {
@@ -106,7 +118,7 @@ describe("RightRail", () => {
       activeFileStore.set({ activeFilePath: "src/active.ts", activeClusterId: "c1" });
     });
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
-    // Switch to chat tab (default is review)
+    // Switch to chat tab
     fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
     expect(screen.getByText("src/active.ts")).toBeTruthy();
   });
@@ -116,7 +128,7 @@ describe("RightRail", () => {
       activeFileStore.set({ activeFilePath: "src/active.ts", activeClusterId: "c1" });
     });
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
-    // Switch to chat tab (default is review)
+    // Switch to chat tab
     fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
     expect(screen.getByText(/scroll up in the main pane/i)).toBeTruthy();
   });
@@ -152,8 +164,17 @@ describe("RightRail", () => {
 
   it("shows empty state when no file is active (in chat tab)", () => {
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
-    // Switch to chat tab (default is review)
+    // Switch to chat tab
     fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
     expect(screen.getByText(/no file selected/i)).toBeTruthy();
+  });
+
+  it("renders annotation filter bar at the bottom of the rail", () => {
+    const { container } = render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    const footer = container.querySelector(".right-rail__filter-footer");
+    expect(footer).toBeTruthy();
+    // Filter bar toolbar should be inside the footer
+    const toolbar = footer?.querySelector('[role="toolbar"]');
+    expect(toolbar).toBeTruthy();
   });
 });

@@ -36,13 +36,6 @@ afterEach(() => {
 });
 
 describe("AnalysisView", () => {
-  it("renders executive summary", () => {
-    const analysis = makeAnalysis();
-    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    expect(screen.getByText("Add new feature")).toBeTruthy();
-    expect(screen.getByText(/This PR adds a new feature/)).toBeTruthy();
-  });
-
   it("renders sidebar with cluster names", () => {
     const analysis = makeAnalysis();
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
@@ -125,13 +118,6 @@ describe("AnalysisView", () => {
     render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
     expect(screen.queryByText("Change Clusters")).toBeNull();
     expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).toBeNull();
-  });
-
-  it("renders exactly one global annotation filter bar", () => {
-    const analysis = makeAnalysis();
-    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
-    const toolbars = screen.getAllByRole("toolbar", { name: /annotation filters/i });
-    expect(toolbars).toHaveLength(1);
   });
 
   it("renders the right rail chat panel", () => {

@@ -2,19 +2,23 @@ import { useState, type CSSProperties } from "react";
 import type { PRAnalysis } from "../types.js";
 import ChatPanel from "./ChatPanel.js";
 import ReviewSubmitBar from "./ReviewSubmitBar.js";
+import ExecutiveSummary from "./ExecutiveSummary.js";
+import AnnotationFilterBar from "./AnnotationFilterBar.js";
 import { useActiveFile } from "../hooks/useActiveFile.js";
 import { useReviewDraft } from "../hooks/useReviewDraft.js";
+import { useAnnotationFilter } from "../hooks/useAnnotationFilter.js";
+import { annotationFilterStore } from "../state/annotationFilterStore.js";
 
 const TAB_KEY = "pr-triage:rightRailTab";
 
-function loadTab(): "chat" | "review" {
+function loadTab(): "summary" | "chat" | "review" {
   try {
     const v = localStorage.getItem(TAB_KEY);
-    if (v === "chat" || v === "review") return v;
+    if (v === "chat" || v === "review" || v === "summary") return v;
   } catch {
     // ignore
   }
-  return "review";
+  return "summary";
 }
 
 interface Props {
@@ -25,9 +29,10 @@ interface Props {
 
 export default function RightRail({ analysis, prUrl, style }: Props) {
   const [collapsed, setCollapsed] = useState(false);
-  const [tab, setTab] = useState<"chat" | "review">(loadTab);
+  const [tab, setTab] = useState<"summary" | "chat" | "review">(loadTab);
   const activeFile = useActiveFile();
   const draft = useReviewDraft();
+  const filter = useAnnotationFilter();
 
   const pendingCount = draft.comments.length;
 
@@ -44,7 +49,7 @@ export default function RightRail({ analysis, prUrl, style }: Props) {
 
   const filePath = activeFile.activeFilePath ?? null;
 
-  function switchTab(t: "chat" | "review") {
+  function switchTab(t: "summary" | "chat" | "review") {
     setTab(t);
     try {
       localStorage.setItem(TAB_KEY, t);
@@ -68,10 +73,10 @@ export default function RightRail({ analysis, prUrl, style }: Props) {
         <div className="right-rail__inner">
           <div className="right-rail__tabs">
             <button
-              className={tab === "chat" ? "is-active" : ""}
-              onClick={() => switchTab("chat")}
+              className={tab === "summary" ? "is-active" : ""}
+              onClick={() => switchTab("summary")}
             >
-              Chat
+              Summary
             </button>
             <button
               className={tab === "review" ? "is-active" : ""}
@@ -81,9 +86,21 @@ export default function RightRail({ analysis, prUrl, style }: Props) {
                 <span className="right-rail__tab-badge">{pendingCount}</span>
               )}
             </button>
+            <button
+              className={tab === "chat" ? "is-active" : ""}
+              onClick={() => switchTab("chat")}
+            >
+              Chat
+            </button>
           </div>
 
-          {tab === "chat" ? (
+          {tab === "summary" && (
+            <div className="right-rail__body">
+              <ExecutiveSummary analysis={analysis} />
+            </div>
+          )}
+
+          {tab === "chat" && (
             <div className="right-rail__inner-chat">
               <div className="right-rail__header">
                 <div className="right-rail__header-title">
@@ -115,11 +132,20 @@ export default function RightRail({ analysis, prUrl, style }: Props) {
                 )}
               </div>
             </div>
-          ) : (
+          )}
+
+          {tab === "review" && (
             <div className="right-rail__body">
               <ReviewSubmitBar prUrl={prUrl} />
             </div>
           )}
+
+          <div className="right-rail__filter-footer">
+            <AnnotationFilterBar
+              value={filter}
+              onChange={(next) => annotationFilterStore.set(next)}
+            />
+          </div>
         </div>
       )}
     </div>

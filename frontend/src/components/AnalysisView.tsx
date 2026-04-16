@@ -1,17 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import type { PRAnalysis } from "../types.js";
-import ExecutiveSummary from "./ExecutiveSummary.js";
 import AnalysisSidebar from "./AnalysisSidebar.js";
 import FileView from "./FileView.js";
-import AnnotationFilterBar from "./AnnotationFilterBar.js";
 import RightRail from "./RightRail.js";
 import ResizeHandle from "./ResizeHandle.js";
 import { reviewDraftStore } from "../state/reviewDraft.js";
 import { viewedStore } from "../state/viewedStore.js";
-import { annotationFilterStore } from "../state/annotationFilterStore.js";
 import { activeClusterStore } from "../state/activeClusterStore.js";
 import { activeFileStore } from "../state/activeFileStore.js";
-import { useAnnotationFilter } from "../hooks/useAnnotationFilter.js";
 import { useActiveCluster } from "../hooks/useActiveCluster.js";
 
 const STORAGE_KEY = "pr-triage:panelWidths";
@@ -43,7 +39,6 @@ function loadWidths(): { leftW: number; rightW: number } {
 interface Props { analysis: PRAnalysis; onBack: () => void; }
 
 export default function AnalysisView({ analysis, onBack }: Props) {
-  const filter = useAnnotationFilter();
   const activeClusterId = useActiveCluster();
 
   const initial = loadWidths();
@@ -104,13 +99,6 @@ export default function AnalysisView({ analysis, onBack }: Props) {
       />
       <main className="analysis-main">
         <button className="btn-link" style={{ paddingTop: "8px" }} onClick={onBack}>← Analyze another PR</button>
-        <ExecutiveSummary analysis={analysis} />
-        <div className="analysis-main__filter-bar">
-          <AnnotationFilterBar
-            value={filter}
-            onChange={(next) => annotationFilterStore.set(next)}
-          />
-        </div>
         {activeCluster?.files.map((file) => (
           <FileView
             key={`${activeCluster.id}:${file.path}`}
