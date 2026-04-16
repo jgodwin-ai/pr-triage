@@ -31,27 +31,24 @@ export async function fetchPR(
   const prResponse = await octokit.rest.pulls.get({ owner, repo, pull_number: pullNumber });
   const pr = prResponse.data;
 
-  // Paginate via Octokit — handles >100 files correctly
+  // Get file list + statuses (paginated, handles >100 files)
   const allFilesRaw = await octokit.paginate(octokit.rest.pulls.listFiles, {
     owner, repo, pull_number: pullNumber, per_page: 100,
   });
 
-  // Fill in patches GitHub omitted (huge PRs, truncated). For non-removed files,
-  // fetch the file body at head SHA and synthesize a unified patch.
-  const limit = (await import("p-limit")).default(5);
-  const allFiles = await Promise.all(
-    allFilesRaw.map((f: any) =>
-      limit(async () => {
-        if (f.patch) return { filename: f.filename, patch: f.patch };
-        const synthesized = await tryBuildPatchFromContents(octokit, owner, repo, f, pr.head.sha, pr.base.sha);
-        if (synthesized) return { filename: f.filename, patch: synthesized };
-        return {
-          filename: f.filename,
-          patch: `[No diff available — ${f.status ?? "changed"} (binary or truncated)]`,
-        };
-      }),
-    ),
-  );
+  // Get authoritative per-file patches from the PR's unified diff.
+  // listFiles.patch silently truncates in very large PRs; the diff media type does not.
+  const patchByFilename = await fetchUnifiedDiffPatches(octokit, owner, repo, pullNumber);
+
+  const allFiles: Array<{ filename: string; patch: string }> = allFilesRaw.map((f: any) => {
+    const patch = patchByFilename.get(f.filename);
+    if (patch) return { filename: f.filename, patch };
+    // Binary file or truly patch-less
+    return {
+      filename: f.filename,
+      patch: `[No diff available — ${f.status ?? "changed"} (binary)]`,
+    };
+  });
 
   const metadata: PRMetadata = {
     url: `https://github.com/${owner}/${repo}/pull/${pullNumber}`,
@@ -72,64 +69,53 @@ export function createOctokit(token: string): Octokit {
   return new Octokit({ auth: token });
 }
 
-const MAX_FILE_BYTES = 512 * 1024; // 512KB per file cap when synthesizing patches
-
-async function fetchFileContent(
+/**
+ * Fetch the PR's full unified diff (Accept: application/vnd.github.v3.diff)
+ * and parse it into per-file patches. GitHub returns authoritative patches
+ * without the silent truncation that affects listFiles.
+ */
+async function fetchUnifiedDiffPatches(
   octokit: Octokit,
   owner: string,
   repo: string,
-  path: string,
-  ref: string,
-): Promise<string | null> {
+  pullNumber: number,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
   try {
-    const res = await octokit.rest.repos.getContent({ owner, repo, path, ref });
-    const data: any = res.data;
-    if (Array.isArray(data) || data.type !== "file") return null;
-    if (typeof data.size === "number" && data.size > MAX_FILE_BYTES) return null;
-    if (typeof data.content !== "string") return null;
-    const buf = Buffer.from(data.content, data.encoding === "base64" ? "base64" : "utf8");
-    return buf.toString("utf8");
+    const res = await octokit.rest.pulls.get({
+      owner, repo, pull_number: pullNumber,
+      mediaType: { format: "diff" },
+    });
+    const diffText: string = typeof res.data === "string" ? (res.data as string) : String(res.data);
+    for (const [filename, patch] of parseUnifiedDiff(diffText)) {
+      out.set(filename, patch);
+    }
   } catch {
-    return null;
+    // Fall back silently — caller will show "binary" placeholder for missing patches.
   }
+  return out;
 }
 
-function buildUnifiedPatch(oldLines: string[], newLines: string[]): string {
-  // Very simple "all replaced" patch — good enough for display.
-  const oldCount = oldLines.length;
-  const newCount = newLines.length;
-  const header = `@@ -${oldCount === 0 ? 0 : 1},${oldCount} +${newCount === 0 ? 0 : 1},${newCount} @@`;
-  const body = [
-    ...oldLines.map((l) => `-${l}`),
-    ...newLines.map((l) => `+${l}`),
-  ].join("\n");
-  return body ? `${header}\n${body}` : header;
-}
-
-async function tryBuildPatchFromContents(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  file: any,
-  headSha: string,
-  baseSha: string,
-): Promise<string | null> {
-  const status = file.status ?? "modified";
-  if (status === "removed") {
-    const oldText = await fetchFileContent(octokit, owner, repo, file.previous_filename ?? file.filename, baseSha);
-    if (oldText == null) return null;
-    return buildUnifiedPatch(oldText.split("\n"), []);
+/**
+ * Split a full unified diff into per-file [filename, patchBody] pairs.
+ * patchBody is just the hunks (starting with @@), matching what listFiles.patch returns.
+ */
+function parseUnifiedDiff(diff: string): Array<[string, string]> {
+  const results: Array<[string, string]> = [];
+  if (!diff) return results;
+  const blocks = diff.split(/^diff --git /m).filter((b) => b.trim().length > 0);
+  for (const block of blocks) {
+    const lines = block.split("\n");
+    // First line is "a/path b/path"
+    const headerLine = lines[0];
+    const bMatch = headerLine.match(/ b\/(.+)$/);
+    const filename = bMatch?.[1]?.trim();
+    if (!filename) continue;
+    // Patch body is everything from the first @@ onward
+    const hunkStart = lines.findIndex((l) => l.startsWith("@@"));
+    if (hunkStart === -1) continue; // binary file, no hunks in diff
+    const patch = lines.slice(hunkStart).join("\n").replace(/\s+$/, "");
+    results.push([filename, patch]);
   }
-  if (status === "added") {
-    const newText = await fetchFileContent(octokit, owner, repo, file.filename, headSha);
-    if (newText == null) return null;
-    return buildUnifiedPatch([], newText.split("\n"));
-  }
-  // modified / renamed / copied: try both sides
-  const [oldText, newText] = await Promise.all([
-    fetchFileContent(octokit, owner, repo, file.previous_filename ?? file.filename, baseSha),
-    fetchFileContent(octokit, owner, repo, file.filename, headSha),
-  ]);
-  if (newText == null) return null;
-  return buildUnifiedPatch(oldText?.split("\n") ?? [], newText.split("\n"));
+  return results;
 }

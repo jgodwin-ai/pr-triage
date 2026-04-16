@@ -33,23 +33,28 @@ describe("fetchPR", () => {
     const mockOctokit = {
       rest: {
         pulls: {
-          get: vi.fn().mockResolvedValue({
-            data: {
-              title: "Fix bug",
-              user: { login: "octocat" },
-              base: { ref: "main" },
-              head: { ref: "fix-branch", sha: "deadbeef" },
-              additions: 10,
-              deletions: 3,
-              changed_files: 2,
-            },
+          get: vi.fn().mockImplementation((args: any) => {
+            if (args?.mediaType?.format === "diff") {
+              return Promise.resolve({ data: `diff --git a/src/app.ts b/src/app.ts\n--- a/src/app.ts\n+++ b/src/app.ts\n@@ -1,3 +1,5 @@\n+new line\ndiff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n` });
+            }
+            return Promise.resolve({
+              data: {
+                title: "Fix bug",
+                user: { login: "octocat" },
+                base: { ref: "main" },
+                head: { ref: "fix-branch", sha: "deadbeef" },
+                additions: 10,
+                deletions: 3,
+                changed_files: 2,
+              },
+            });
           }),
           listFiles: vi.fn(),
         },
       },
       paginate: vi.fn().mockResolvedValue([
-        { filename: "src/app.ts", patch: "@@ -1,3 +1,5 @@\n+new line", status: "modified" },
-        { filename: "README.md", patch: "@@ -1 +1 @@\n-old\n+new", status: "modified" },
+        { filename: "src/app.ts", status: "modified" },
+        { filename: "README.md", status: "modified" },
       ]),
     };
 
@@ -106,27 +111,33 @@ describe("fetchPR", () => {
     expect(result.metadata.author).toBe("unknown");
   });
 
-  it("includes files without patches with a placeholder", async () => {
+  it("uses unified diff patches, falls back to placeholder when diff omits a file (binary)", async () => {
     const mockOctokit = {
       rest: {
         pulls: {
-          get: vi.fn().mockResolvedValue({
-            data: {
-              title: "Add image",
-              user: { login: "dev" },
-              base: { ref: "main" },
-              head: { ref: "add-img" },
-              additions: 0,
-              deletions: 0,
-              changed_files: 2,
-            },
+          get: vi.fn().mockImplementation((args: any) => {
+            if (args?.mediaType?.format === "diff") {
+              // unified diff contains app.ts but not logo.png (binary)
+              return Promise.resolve({ data: `diff --git a/src/app.ts b/src/app.ts\n--- a/src/app.ts\n+++ b/src/app.ts\n@@ diff @@\n` });
+            }
+            return Promise.resolve({
+              data: {
+                title: "Add image",
+                user: { login: "dev" },
+                base: { ref: "main" },
+                head: { ref: "add-img" },
+                additions: 0,
+                deletions: 0,
+                changed_files: 2,
+              },
+            });
           }),
           listFiles: vi.fn(),
         },
       },
       paginate: vi.fn().mockResolvedValue([
         { filename: "logo.png", status: "added" },
-        { filename: "src/app.ts", patch: "@@ diff @@", status: "modified" },
+        { filename: "src/app.ts", status: "modified" },
       ]),
     };
 
@@ -143,27 +154,28 @@ describe("fetchPR", () => {
   });
 
   it("paginates when more than 100 files", async () => {
-    const page1 = Array.from({ length: 100 }, (_, i) => ({
-      filename: `file${i}.ts`,
-      patch: `@@ diff ${i} @@`,
-    }));
-    const page2 = [
-      { filename: "file100.ts", patch: "@@ diff 100 @@" },
-    ];
+    const page1 = Array.from({ length: 100 }, (_, i) => ({ filename: `file${i}.ts`, status: "modified" }));
+    const page2 = [{ filename: "file100.ts", status: "modified" }];
+    const diffText = [...page1, ...page2]
+      .map((f, i) => `diff --git a/${f.filename} b/${f.filename}\n--- a/${f.filename}\n+++ b/${f.filename}\n@@ diff ${i} @@`)
+      .join("\n");
 
     const mockOctokit = {
       rest: {
         pulls: {
-          get: vi.fn().mockResolvedValue({
-            data: {
-              title: "Big PR",
-              user: { login: "dev" },
-              base: { ref: "main" },
-              head: { ref: "big" },
-              additions: 500,
-              deletions: 100,
-              changed_files: 101,
-            },
+          get: vi.fn().mockImplementation((args: any) => {
+            if (args?.mediaType?.format === "diff") return Promise.resolve({ data: diffText });
+            return Promise.resolve({
+              data: {
+                title: "Big PR",
+                user: { login: "dev" },
+                base: { ref: "main" },
+                head: { ref: "big" },
+                additions: 500,
+                deletions: 100,
+                changed_files: 101,
+              },
+            });
           }),
           listFiles: vi.fn(),
         },
