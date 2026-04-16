@@ -134,7 +134,7 @@ export default function DiffViewer({ clusterId, file, filter, viewType }: Props)
     <div className="diff-viewer">
       <CommentThread target={{ kind: "file", clusterId, path: file.path }} title="File-level comments" />
 
-      {files[0] ? (
+      {files[0] && files[0].hunks && files[0].hunks.length > 0 ? (
         <Diff
           viewType={viewType}
           diffType={files[0].type}
@@ -160,7 +160,7 @@ export default function DiffViewer({ clusterId, file, filter, viewType }: Props)
       )}
 
       {/* Also list annotations below the diff so they're reachable even when parseDiff falls back. */}
-      {!files[0] && visibleAnnotations.length > 0 && (
+      {(!files[0] || !files[0].hunks?.length) && visibleAnnotations.length > 0 && (
         <div className="diff-viewer__fallback-annotations">
           {visibleAnnotations.map(({ ann, idx }) => (
             <DiffLineAnnotation
