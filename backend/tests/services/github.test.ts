@@ -53,8 +53,8 @@ describe("fetchPR", () => {
         },
       },
       paginate: vi.fn().mockResolvedValue([
-        { filename: "src/app.ts", status: "modified" },
-        { filename: "README.md", status: "modified" },
+        { filename: "src/app.ts", patch: "@@ -1,3 +1,5 @@\n+new line", status: "modified" },
+        { filename: "README.md", patch: "@@ -1 +1 @@\n-old\n+new", status: "modified" },
       ]),
     };
 
@@ -137,7 +137,7 @@ describe("fetchPR", () => {
       },
       paginate: vi.fn().mockResolvedValue([
         { filename: "logo.png", status: "added" },
-        { filename: "src/app.ts", status: "modified" },
+        { filename: "src/app.ts", patch: "@@ diff @@", status: "modified" },
       ]),
     };
 
@@ -148,7 +148,7 @@ describe("fetchPR", () => {
 
     expect(result.files).toHaveLength(2);
     const bin = result.files.find((f) => f.filename === "logo.png");
-    expect(bin?.patch).toMatch(/No diff available/);
+    expect(bin?.patch).toMatch(/Binary file|No diff/);
     const code = result.files.find((f) => f.filename === "src/app.ts");
     expect(code?.patch).toBe("@@ diff @@");
   });

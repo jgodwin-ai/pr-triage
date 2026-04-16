@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "diff": "^9.0.0",
     "express": "^5.1.0",
     "octokit": "^4.1.2",
     "p-limit": "^7.3.0",

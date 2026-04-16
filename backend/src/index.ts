@@ -52,6 +52,14 @@ app.locals.startPipeline = async (
     broadcast(wss, { type: "status", stage: "fetching-pr", progress: "loading PR data" });
     const prData = await fetchPR(parts, octokit);
 
+    // Throttle: cap files analyzed to avoid long waits on mega-PRs.
+    const maxFiles = parseInt(process.env.MAX_FILES_ANALYZED ?? "10", 10);
+    if (prData.files.length > maxFiles) {
+      console.log(`[pipeline] capping analysis to ${maxFiles} of ${prData.files.length} files`);
+      prData.files = prData.files.slice(0, maxFiles);
+      prData.metadata.fileCount = maxFiles;
+    }
+
     const cached = await analysisCache.get(prUrl, prData.metadata.headSha);
     if (cached) {
       broadcast(wss, { type: "complete", analysis: cached });
