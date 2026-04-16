@@ -46,12 +46,25 @@ describe("RightRail", () => {
     expect(screen.getByRole("button", { name: /^review/i })).toBeTruthy();
   });
 
-  it("shows chat content by default", () => {
+  it("defaults to Review tab when localStorage is empty", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    expect(screen.getByText(/finish your review/i)).toBeTruthy();
+  });
+
+  it("restores saved chat tab from localStorage", () => {
+    localStorage.setItem("pr-triage:rightRailTab", "chat");
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
     expect(screen.getByText(/no file selected/i)).toBeTruthy();
   });
 
+  it("switches to Chat tab and shows chat content", () => {
+    render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
+    expect(screen.getByText(/no file selected/i)).toBeTruthy();
+  });
+
   it("switches to Review tab and shows review form", () => {
+    localStorage.setItem("pr-triage:rightRailTab", "chat");
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
     const reviewBtn = screen.getByRole("button", { name: /^review/i });
     fireEvent.click(reviewBtn);
@@ -60,12 +73,12 @@ describe("RightRail", () => {
 
   it("switches back from Review to Chat tab", () => {
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
-    // go to review
-    fireEvent.click(screen.getByRole("button", { name: /^review/i }));
-    expect(screen.getByText(/finish your review/i)).toBeTruthy();
-    // go back to chat
+    // already on review by default; go to chat
     fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
     expect(screen.getByText(/no file selected/i)).toBeTruthy();
+    // switch back to review
+    fireEvent.click(screen.getByRole("button", { name: /^review/i }));
+    expect(screen.getByText(/finish your review/i)).toBeTruthy();
   });
 
   it("shows pending count badge on Review tab when there are pending comments", () => {
@@ -93,6 +106,8 @@ describe("RightRail", () => {
       activeFileStore.set({ activeFilePath: "src/active.ts", activeClusterId: "c1" });
     });
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    // Switch to chat tab (default is review)
+    fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
     expect(screen.getByText("src/active.ts")).toBeTruthy();
   });
 
@@ -101,6 +116,8 @@ describe("RightRail", () => {
       activeFileStore.set({ activeFilePath: "src/active.ts", activeClusterId: "c1" });
     });
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    // Switch to chat tab (default is review)
+    fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
     expect(screen.getByText(/scroll up in the main pane/i)).toBeTruthy();
   });
 
@@ -135,6 +152,8 @@ describe("RightRail", () => {
 
   it("shows empty state when no file is active (in chat tab)", () => {
     render(<RightRail analysis={analysis} prUrl={prUrl} />);
+    // Switch to chat tab (default is review)
+    fireEvent.click(screen.getByRole("button", { name: /^chat$/i }));
     expect(screen.getByText(/no file selected/i)).toBeTruthy();
   });
 });

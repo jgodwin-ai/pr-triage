@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { reviewDraftStore } from "../state/reviewDraft.js";
 import { useReviewDraft } from "../hooks/useReviewDraft.js";
+import DraftedComments from "./DraftedComments.js";
 
 interface Props { prUrl: string; }
 
@@ -63,6 +64,7 @@ export default function ReviewSubmitBar({ prUrl }: Props) {
   return (
     <div className="review-form">
       <h3 className="review-form__heading">Finish your review</h3>
+      <DraftedComments />
       <textarea
         className="review-form__summary"
         placeholder="Leave a comment"

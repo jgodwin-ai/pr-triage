@@ -604,3 +604,20 @@ body {
 .diff-code .token.regex, .diff-code .token.important, .diff-code .token.variable { color: #e36209; }
 .diff-code .token.important, .diff-code .token.bold { font-weight: 600; }
 .diff-code .token.italic { font-style: italic; }
+
+/* DraftedComments panel */
+.drafted-comments { border: 1px solid #d1d9e0; border-radius: 8px; margin-bottom: 12px; background: #fafbfc; }
+.drafted-comments__title { padding: 8px 12px; font-size: 12px; font-weight: 600; color: #656d76; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #d1d9e0; }
+.drafted-comments__list { list-style: none; padding: 0; margin: 0; max-height: 280px; overflow-y: auto; }
+.drafted-comments__item { padding: 8px 12px; border-bottom: 1px solid #eaeef2; }
+.drafted-comments__item:last-child { border-bottom: none; }
+.drafted-comments__item.is-stale { background: #fff8c5; }
+.drafted-comments__ctx { font-family: ui-monospace, monospace; font-size: 11px; color: #656d76; margin-bottom: 3px; }
+.drafted-comments__body { font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+.drafted-comments__actions { display: flex; gap: 8px; margin-top: 4px; }
+
+/* Scroll highlight pulse */
+.file-view.is-jump-target { outline: 2px solid #0969da; outline-offset: 2px; transition: outline 1.2s ease-out; }
+
+/* Sidebar cluster file list (expanded active cluster) */
+.sidebar-cluster__files { list-style: none; padding: 0; margin: 0; }

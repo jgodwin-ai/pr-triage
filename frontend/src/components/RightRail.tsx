@@ -14,7 +14,7 @@ function loadTab(): "chat" | "review" {
   } catch {
     // ignore
   }
-  return "chat";
+  return "review";
 }
 
 interface Props {
