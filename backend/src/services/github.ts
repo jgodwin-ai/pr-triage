@@ -35,10 +35,23 @@ export async function fetchPR(
   const allFilesRaw = await octokit.paginate(octokit.rest.pulls.listFiles, {
     owner, repo, pull_number: pullNumber, per_page: 100,
   });
-  const allFiles: Array<{ filename: string; patch: string }> = allFilesRaw.map((f: any) => ({
-    filename: f.filename,
-    patch: f.patch ?? `[No diff available — ${f.status ?? "changed"}, ${f.changes ?? 0} changes (binary or truncated by GitHub)]`,
-  }));
+
+  // Fill in patches GitHub omitted (huge PRs, truncated). For non-removed files,
+  // fetch the file body at head SHA and synthesize a unified patch.
+  const limit = (await import("p-limit")).default(5);
+  const allFiles = await Promise.all(
+    allFilesRaw.map((f: any) =>
+      limit(async () => {
+        if (f.patch) return { filename: f.filename, patch: f.patch };
+        const synthesized = await tryBuildPatchFromContents(octokit, owner, repo, f, pr.head.sha, pr.base.sha);
+        if (synthesized) return { filename: f.filename, patch: synthesized };
+        return {
+          filename: f.filename,
+          patch: `[No diff available — ${f.status ?? "changed"} (binary or truncated)]`,
+        };
+      }),
+    ),
+  );
 
   const metadata: PRMetadata = {
     url: `https://github.com/${owner}/${repo}/pull/${pullNumber}`,
@@ -57,4 +70,66 @@ export async function fetchPR(
 
 export function createOctokit(token: string): Octokit {
   return new Octokit({ auth: token });
+}
+
+const MAX_FILE_BYTES = 512 * 1024; // 512KB per file cap when synthesizing patches
+
+async function fetchFileContent(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string,
+): Promise<string | null> {
+  try {
+    const res = await octokit.rest.repos.getContent({ owner, repo, path, ref });
+    const data: any = res.data;
+    if (Array.isArray(data) || data.type !== "file") return null;
+    if (typeof data.size === "number" && data.size > MAX_FILE_BYTES) return null;
+    if (typeof data.content !== "string") return null;
+    const buf = Buffer.from(data.content, data.encoding === "base64" ? "base64" : "utf8");
+    return buf.toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
+function buildUnifiedPatch(oldLines: string[], newLines: string[]): string {
+  // Very simple "all replaced" patch — good enough for display.
+  const oldCount = oldLines.length;
+  const newCount = newLines.length;
+  const header = `@@ -${oldCount === 0 ? 0 : 1},${oldCount} +${newCount === 0 ? 0 : 1},${newCount} @@`;
+  const body = [
+    ...oldLines.map((l) => `-${l}`),
+    ...newLines.map((l) => `+${l}`),
+  ].join("\n");
+  return body ? `${header}\n${body}` : header;
+}
+
+async function tryBuildPatchFromContents(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  file: any,
+  headSha: string,
+  baseSha: string,
+): Promise<string | null> {
+  const status = file.status ?? "modified";
+  if (status === "removed") {
+    const oldText = await fetchFileContent(octokit, owner, repo, file.previous_filename ?? file.filename, baseSha);
+    if (oldText == null) return null;
+    return buildUnifiedPatch(oldText.split("\n"), []);
+  }
+  if (status === "added") {
+    const newText = await fetchFileContent(octokit, owner, repo, file.filename, headSha);
+    if (newText == null) return null;
+    return buildUnifiedPatch([], newText.split("\n"));
+  }
+  // modified / renamed / copied: try both sides
+  const [oldText, newText] = await Promise.all([
+    fetchFileContent(octokit, owner, repo, file.previous_filename ?? file.filename, baseSha),
+    fetchFileContent(octokit, owner, repo, file.filename, headSha),
+  ]);
+  if (newText == null) return null;
+  return buildUnifiedPatch(oldText?.split("\n") ?? [], newText.split("\n"));
 }
