@@ -169,12 +169,9 @@ describe("RightRail", () => {
     expect(screen.getByText(/no file selected/i)).toBeTruthy();
   });
 
-  it("renders annotation filter bar at the bottom of the rail", () => {
+  it("does not render annotation filter bar (moved to main pane)", () => {
     const { container } = render(<RightRail analysis={analysis} prUrl={prUrl} />);
     const footer = container.querySelector(".right-rail__filter-footer");
-    expect(footer).toBeTruthy();
-    // Filter bar toolbar should be inside the footer
-    const toolbar = footer?.querySelector('[role="toolbar"]');
-    expect(toolbar).toBeTruthy();
+    expect(footer).toBeNull();
   });
 });

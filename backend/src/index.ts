@@ -52,10 +52,18 @@ app.locals.startPipeline = async (
     broadcast(wss, { type: "status", stage: "fetching-pr", progress: "loading PR data" });
     const prData = await fetchPR(parts, octokit);
 
+    // Prioritize source files over build artifacts / coverage when capping.
+    const skipPatterns = /\/(coverage|dist|node_modules|\.cache)\//;
+    prData.files.sort((a, b) => {
+      const aSkip = skipPatterns.test(a.filename) ? 1 : 0;
+      const bSkip = skipPatterns.test(b.filename) ? 1 : 0;
+      return aSkip - bSkip;
+    });
+
     // Throttle: cap files analyzed to avoid long waits on mega-PRs.
     const maxFiles = parseInt(process.env.MAX_FILES_ANALYZED ?? "10", 10);
     if (prData.files.length > maxFiles) {
-      console.log(`[pipeline] capping analysis to ${maxFiles} of ${prData.files.length} files`);
+      console.log(`[pipeline] capping analysis to ${maxFiles} of ${prData.files.length} files (skipping coverage/dist)`);
       prData.files = prData.files.slice(0, maxFiles);
       prData.metadata.fileCount = maxFiles;
     }

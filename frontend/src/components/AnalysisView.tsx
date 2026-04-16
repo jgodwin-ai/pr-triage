@@ -4,11 +4,14 @@ import AnalysisSidebar from "./AnalysisSidebar.js";
 import FileView from "./FileView.js";
 import RightRail from "./RightRail.js";
 import ResizeHandle from "./ResizeHandle.js";
+import AnnotationFilterBar from "./AnnotationFilterBar.js";
 import { reviewDraftStore } from "../state/reviewDraft.js";
 import { viewedStore } from "../state/viewedStore.js";
 import { activeClusterStore } from "../state/activeClusterStore.js";
 import { activeFileStore } from "../state/activeFileStore.js";
 import { useActiveCluster } from "../hooks/useActiveCluster.js";
+import { useAnnotationFilter } from "../hooks/useAnnotationFilter.js";
+import { annotationFilterStore } from "../state/annotationFilterStore.js";
 
 const STORAGE_KEY = "pr-triage:panelWidths";
 const LEFT_MIN = 180;
@@ -40,6 +43,7 @@ interface Props { analysis: PRAnalysis; onBack: () => void; }
 
 export default function AnalysisView({ analysis, onBack }: Props) {
   const activeClusterId = useActiveCluster();
+  const filter = useAnnotationFilter();
 
   const initial = loadWidths();
   const [leftW, setLeftW] = useState(initial.leftW);
@@ -60,6 +64,8 @@ export default function AnalysisView({ analysis, onBack }: Props) {
   useEffect(() => {
     reviewDraftStore.loadFor(analysis.pr.url, analysis.pr.headSha);
     viewedStore.loadFor(analysis.pr.url, analysis.pr.headSha);
+    // Reset right rail to Summary tab on new analysis
+    try { localStorage.setItem("pr-triage:rightRailTab", "summary"); } catch {}
   }, [analysis.pr.url, analysis.pr.headSha]);
 
   // Set default active cluster when analysis mounts or changes
@@ -106,6 +112,12 @@ export default function AnalysisView({ analysis, onBack }: Props) {
             file={file}
           />
         ))}
+        <div className="analysis-main__filter-float">
+          <AnnotationFilterBar
+            value={filter}
+            onChange={(next) => annotationFilterStore.set(next)}
+          />
+        </div>
       </main>
       <ResizeHandle
         onDragStart={() => { leftSnap.current = leftW; rightSnap.current = rightW; }}

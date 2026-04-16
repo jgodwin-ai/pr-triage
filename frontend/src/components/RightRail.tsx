@@ -3,11 +3,8 @@ import type { PRAnalysis } from "../types.js";
 import ChatPanel from "./ChatPanel.js";
 import ReviewSubmitBar from "./ReviewSubmitBar.js";
 import ExecutiveSummary from "./ExecutiveSummary.js";
-import AnnotationFilterBar from "./AnnotationFilterBar.js";
 import { useActiveFile } from "../hooks/useActiveFile.js";
 import { useReviewDraft } from "../hooks/useReviewDraft.js";
-import { useAnnotationFilter } from "../hooks/useAnnotationFilter.js";
-import { annotationFilterStore } from "../state/annotationFilterStore.js";
 
 const TAB_KEY = "pr-triage:rightRailTab";
 
@@ -32,7 +29,6 @@ export default function RightRail({ analysis, prUrl, style }: Props) {
   const [tab, setTab] = useState<"summary" | "chat" | "review">(loadTab);
   const activeFile = useActiveFile();
   const draft = useReviewDraft();
-  const filter = useAnnotationFilter();
 
   const pendingCount = draft.comments.length;
 
@@ -140,12 +136,6 @@ export default function RightRail({ analysis, prUrl, style }: Props) {
             </div>
           )}
 
-          <div className="right-rail__filter-footer">
-            <AnnotationFilterBar
-              value={filter}
-              onChange={(next) => annotationFilterStore.set(next)}
-            />
-          </div>
         </div>
       )}
     </div>
