@@ -89,8 +89,9 @@ export default function DiffViewer({ clusterId, file, filter, viewType }: Props)
       if (c.target.clusterId !== clusterId || c.target.path !== file.path) return;
       const { line, side } = c.target;
       const key = side === "RIGHT" ? `I${line}` : `D${line}`;
+      const anchorId = `line-${clusterId}-${encodeURIComponent(file.path)}-${side}-${line}`;
       const node = (
-        <div key={c.id} className="diff-line-comment">
+        <div key={c.id} id={anchorId} className="diff-line-comment">
           <p>{renderEmoji(c.body)}</p>
           <div className="comment__actions">
             <button className="btn-link" onClick={() => reviewDraftStore.removeComment(c.id)}>Delete</button>

@@ -19,18 +19,29 @@ function basename(p: string) {
 }
 
 function jumpTo(target: CommentTarget) {
-  // 1. switch to the target's cluster if needed
   if ("clusterId" in target) activeClusterStore.set(target.clusterId);
-  // 2. next tick, scroll to the file card
   setTimeout(() => {
     if (target.kind === "cluster") return;
-    const id = `file-${target.clusterId}-${encodeURIComponent(target.path)}`;
-    const el = document.getElementById(id);
+
+    const path = encodeURIComponent(target.path);
+    const candidates: string[] = [];
+    if (target.kind === "line") {
+      candidates.push(`line-${target.clusterId}-${path}-${target.side}-${target.line}`);
+    } else if (target.kind === "annotation") {
+      candidates.push(`ann-${target.clusterId}-${path}-${target.annotationIndex}`);
+    }
+    candidates.push(`file-${target.clusterId}-${path}`);
+
+    let el: HTMLElement | null = null;
+    for (const id of candidates) {
+      el = document.getElementById(id);
+      if (el) break;
+    }
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    // 3. highlight briefly
+
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.classList.add("is-jump-target");
-    setTimeout(() => el.classList.remove("is-jump-target"), 1500);
+    setTimeout(() => el?.classList.remove("is-jump-target"), 1500);
   }, 50);
 }
 

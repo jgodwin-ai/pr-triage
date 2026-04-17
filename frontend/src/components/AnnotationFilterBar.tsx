@@ -7,11 +7,12 @@ export interface AnnotationFilter {
 interface Props {
   value: AnnotationFilter;
   onChange: (next: AnnotationFilter) => void;
+  counts?: Record<keyof AnnotationFilter, number>;
 }
 
 const TYPES: Array<keyof AnnotationFilter> = ["warning", "suggestion", "info"];
 
-export default function AnnotationFilterBar({ value, onChange }: Props) {
+export default function AnnotationFilterBar({ value, onChange, counts }: Props) {
   return (
     <div className="filter-bar" role="toolbar" aria-label="Annotation filters">
       <span className="filter-bar__label">Show:</span>
@@ -24,6 +25,9 @@ export default function AnnotationFilterBar({ value, onChange }: Props) {
           onClick={() => onChange({ ...value, [t]: !value[t] })}
         >
           {t}
+          {counts && (
+            <span className="chip__count">{counts[t]}</span>
+          )}
         </button>
       ))}
     </div>

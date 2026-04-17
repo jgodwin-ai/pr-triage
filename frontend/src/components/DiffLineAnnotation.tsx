@@ -11,8 +11,9 @@ interface Props {
 }
 
 export default function DiffLineAnnotation({ annotation, clusterId, path, annotationIndex }: Props) {
+  const id = `ann-${clusterId}-${encodeURIComponent(path)}-${annotationIndex}`;
   return (
-    <div className={`diff-annotation diff-annotation--${annotation.type}`}>
+    <div id={id} className={`diff-annotation diff-annotation--${annotation.type}`}>
       <div className="diff-annotation__header">
         <span className={`annotation-type annotation-type--${annotation.type}`}>{annotation.type}</span>
         <span>L{annotation.lineStart}{annotation.lineEnd !== annotation.lineStart ? `-${annotation.lineEnd}` : ""}</span>

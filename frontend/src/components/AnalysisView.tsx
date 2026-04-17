@@ -84,6 +84,13 @@ export default function AnalysisView({ analysis, onBack }: Props) {
   const activeCluster =
     analysis.clusters.find((c) => c.id === activeClusterId) ?? analysis.clusters[0];
 
+  const annotationCounts = { warning: 0, suggestion: 0, info: 0 };
+  for (const f of activeCluster?.files ?? []) {
+    for (const a of f.annotations) {
+      if (a.type in annotationCounts) annotationCounts[a.type as keyof typeof annotationCounts]++;
+    }
+  }
+
   const handleLeftDrag = useCallback((deltaX: number) => {
     const newW = clamp(leftSnap.current + deltaX, LEFT_MIN, LEFT_MAX);
     setLeftW(newW);
@@ -104,18 +111,21 @@ export default function AnalysisView({ analysis, onBack }: Props) {
         onDrag={handleLeftDrag}
       />
       <main className="analysis-main">
-        <button className="btn-link" style={{ paddingTop: "8px" }} onClick={onBack}>← Analyze another PR</button>
-        {activeCluster?.files.map((file) => (
-          <FileView
-            key={`${activeCluster.id}:${file.path}`}
-            cluster={activeCluster}
-            file={file}
-          />
-        ))}
+        <div className="analysis-main__scroll">
+          <button className="btn-link" style={{ paddingTop: "8px" }} onClick={onBack}>← Analyze another PR</button>
+          {activeCluster?.files.map((file) => (
+            <FileView
+              key={`${activeCluster.id}:${file.path}`}
+              cluster={activeCluster}
+              file={file}
+            />
+          ))}
+        </div>
         <div className="analysis-main__filter-float">
           <AnnotationFilterBar
             value={filter}
             onChange={(next) => annotationFilterStore.set(next)}
+            counts={annotationCounts}
           />
         </div>
       </main>
