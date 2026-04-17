@@ -6,11 +6,19 @@ interface Props {
   onAnalysisComplete: (analysis: PRAnalysis) => void;
 }
 
+interface SampleSummary {
+  key: string;
+  prUrl: string;
+  title: string;
+  headSha: string;
+}
+
 export default function LandingPage({ onAnalysisComplete }: Props) {
   const [prUrl, setPrUrl] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const [githubTokenConfigured, setGithubTokenConfigured] = useState<boolean | null>(null);
   const [llmProvider, setLlmProvider] = useState<string | null>(null);
+  const [samples, setSamples] = useState<SampleSummary[]>([]);
 
   const { stage, progress, error, startAnalysis } = useAnalysis(onAnalysisComplete);
 
@@ -25,7 +33,19 @@ export default function LandingPage({ onAnalysisComplete }: Props) {
         setGithubTokenConfigured(false);
         setLlmProvider("claude-cli");
       });
+
+    fetch("/api/analyze/samples")
+      .then((res) => (res.ok ? res.json() : { samples: [] }))
+      .then((data) => setSamples(data.samples ?? []))
+      .catch(() => setSamples([]));
   }, []);
+
+  const loadSample = async (key: string) => {
+    const res = await fetch(`/api/analyze/samples/${encodeURIComponent(key)}`);
+    if (!res.ok) return;
+    const { analysis } = await res.json();
+    if (analysis) onAnalysisComplete(analysis);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +108,26 @@ export default function LandingPage({ onAnalysisComplete }: Props) {
         {error && (
           <div className="error-bar">
             <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {samples.length > 0 && (
+          <div className="sample-loader">
+            <div className="sample-loader__label">Dev shortcut — load a cached analysis:</div>
+            <ul className="sample-loader__list">
+              {samples.map((s) => (
+                <li key={s.key}>
+                  <button
+                    type="button"
+                    className="btn-link"
+                    onClick={() => loadSample(s.key)}
+                    disabled={isLoading}
+                  >
+                    {s.title || s.prUrl || s.key}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

@@ -35,6 +35,11 @@ body {
   max-width: 520px;
 }
 
+.sample-loader { margin-top: 20px; padding-top: 16px; border-top: 1px dashed #d1d9e0; }
+.sample-loader__label { font-size: 12px; color: #656d76; margin-bottom: 6px; }
+.sample-loader__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.sample-loader__list button { text-align: left; font-size: 13px; }
+
 .landing-card h1 {
   font-size: 28px;
   font-weight: 700;

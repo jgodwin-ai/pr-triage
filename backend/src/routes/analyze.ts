@@ -2,6 +2,7 @@ import { Router } from "express";
 import { parsePrUrl } from "../services/github.js";
 import type { PRAnalysis, AnalyzeRequest } from "../types.js";
 import { v4 as uuidv4 } from "uuid";
+import type { AnalysisCache } from "../services/analysis-cache.js";
 
 const router = Router();
 
@@ -63,6 +64,30 @@ router.post("/", (req, res) => {
   }
 
   res.status(202).json({ analysisId });
+});
+
+router.get("/samples", async (req, res) => {
+  const cache = req.app.locals.analysisCache as AnalysisCache | undefined;
+  if (!cache) {
+    res.status(503).json({ error: "Cache not configured" });
+    return;
+  }
+  const items = await cache.list();
+  res.json({ samples: items });
+});
+
+router.get("/samples/:key", async (req, res) => {
+  const cache = req.app.locals.analysisCache as AnalysisCache | undefined;
+  if (!cache) {
+    res.status(503).json({ error: "Cache not configured" });
+    return;
+  }
+  const analysis = await cache.getByKey(req.params.key);
+  if (!analysis) {
+    res.status(404).json({ error: "Sample not found" });
+    return;
+  }
+  res.json({ analysis });
 });
 
 router.get("/:id", (req, res) => {

@@ -36,6 +36,7 @@ const wss = setupWebSocket(httpServer);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cacheDir = process.env.ANALYSIS_CACHE_DIR ?? path.join(__dirname, "..", ".cache", "analyses");
 const analysisCache = new AnalysisCache(cacheDir);
+app.locals.analysisCache = analysisCache;
 
 // Wire up the pipeline launcher
 app.locals.startPipeline = async (
