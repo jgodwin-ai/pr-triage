@@ -4,6 +4,7 @@ dist/
 .superpowers/
 *.log
 *.png
+!/example.png
 .playwright-mcp/
 
 # build artifacts
