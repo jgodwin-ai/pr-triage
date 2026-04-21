@@ -20,6 +20,15 @@ function basename(p: string) {
 
 function jumpTo(target: CommentTarget) {
   if ("clusterId" in target) activeClusterStore.set(target.clusterId);
+  // Ask the target file to mount eagerly so its inner anchors (line comments,
+  // annotation widgets) actually exist by the time we scroll.
+  if (target.kind !== "cluster") {
+    window.dispatchEvent(
+      new CustomEvent("pr-triage:mount-file", {
+        detail: { clusterId: target.clusterId, path: target.path },
+      }),
+    );
+  }
   setTimeout(() => {
     if (target.kind === "cluster") return;
 

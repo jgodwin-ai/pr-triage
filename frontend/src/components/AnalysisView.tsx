@@ -113,13 +113,15 @@ export default function AnalysisView({ analysis, onBack }: Props) {
       <main className="analysis-main">
         <div className="analysis-main__scroll">
           <button className="btn-link" style={{ paddingTop: "8px" }} onClick={onBack}>← Analyze another PR</button>
-          {activeCluster?.files.map((file) => (
-            <FileView
-              key={`${activeCluster.id}:${file.path}`}
-              cluster={activeCluster}
-              file={file}
-            />
-          ))}
+          {activeCluster && [...activeCluster.files]
+            .sort((a, b) => b.impactScore - a.impactScore)
+            .map((file) => (
+              <FileView
+                key={`${activeCluster.id}:${file.path}`}
+                cluster={activeCluster}
+                file={file}
+              />
+            ))}
         </div>
         <div className="analysis-main__filter-float">
           <AnnotationFilterBar

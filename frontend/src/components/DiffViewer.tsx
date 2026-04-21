@@ -63,11 +63,35 @@ export default function DiffViewer({ clusterId, file, filter, viewType }: Props)
     } catch { return undefined; }
   }, [files, file.path]);
 
+  // Partition annotations into ones whose line numbers fall inside a hunk's
+  // new-file range (renderable as widgets) vs out-of-range / reversed ones
+  // (rendered as a fallback list below the diff). The LLM occasionally emits
+  // line numbers past the end of the file or with lineStart > lineEnd.
+  const { inRangeAnnotations, outOfRangeAnnotations } = useMemo(() => {
+    const inRange: Array<{ ann: (typeof file.annotations)[number]; idx: number }> = [];
+    const outOfRange: Array<{ ann: (typeof file.annotations)[number]; idx: number }> = [];
+    const hunks = files[0]?.hunks ?? [];
+    const checkLine = (line: number): boolean => {
+      for (const h of hunks) {
+        const max = h.newStart + h.newLines - 1;
+        if (line >= h.newStart && line <= max) return true;
+      }
+      return false;
+    };
+    file.annotations.forEach((ann, idx) => {
+      const lo = Math.min(ann.lineStart, ann.lineEnd);
+      const hi = Math.max(ann.lineStart, ann.lineEnd);
+      const valid = hunks.length > 0 && lo > 0 && checkLine(hi);
+      (valid ? inRange : outOfRange).push({ ann, idx });
+    });
+    return { inRangeAnnotations: inRange, outOfRangeAnnotations: outOfRange };
+  }, [file.annotations, files]);
+
   const widgets = useMemo(() => {
     const w: Record<string, ReactNode> = {};
 
-    // Annotation widgets (existing behaviour)
-    file.annotations.forEach((ann, idx) => {
+    // Annotation widgets (only for in-range annotations)
+    inRangeAnnotations.forEach(({ ann, idx }) => {
       if (!filter[ann.type]) return;
       const key = `I${ann.lineEnd}`;
       const existing = w[key];
@@ -124,12 +148,13 @@ export default function DiffViewer({ clusterId, file, filter, viewType }: Props)
     }
 
     return w;
-  }, [file.annotations, filter, clusterId, file.path, lineCommentTarget, draft.comments]);
+  }, [inRangeAnnotations, filter, clusterId, file.path, lineCommentTarget, draft.comments]);
 
-  // Render annotations listed inline even if parseDiff failed, so tests still find the text.
-  const visibleAnnotations = file.annotations
-    .map((ann, idx) => ({ ann, idx }))
-    .filter(({ ann }) => filter[ann.type]);
+  // When parseDiff fails entirely, fall back to rendering every filtered annotation below the raw patch.
+  const parseDiffFailed = !files[0] || !files[0].hunks?.length;
+  const fallbackAnnotations = parseDiffFailed
+    ? file.annotations.map((ann, idx) => ({ ann, idx })).filter(({ ann }) => filter[ann.type])
+    : outOfRangeAnnotations.filter(({ ann }) => filter[ann.type]);
 
   return (
     <div className="diff-viewer">
@@ -160,10 +185,14 @@ export default function DiffViewer({ clusterId, file, filter, viewType }: Props)
         <pre className="diff-viewer__fallback">{file.diff}</pre>
       )}
 
-      {/* Also list annotations below the diff so they're reachable even when parseDiff falls back. */}
-      {(!files[0] || !files[0].hunks?.length) && visibleAnnotations.length > 0 && (
+      {fallbackAnnotations.length > 0 && (
         <div className="diff-viewer__fallback-annotations">
-          {visibleAnnotations.map(({ ann, idx }) => (
+          {!parseDiffFailed && (
+            <div className="diff-viewer__fallback-heading">
+              General comments (line numbers outside the diff)
+            </div>
+          )}
+          {fallbackAnnotations.map(({ ann, idx }) => (
             <DiffLineAnnotation
               key={idx}
               annotation={ann}

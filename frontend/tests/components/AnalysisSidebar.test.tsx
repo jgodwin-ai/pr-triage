@@ -161,7 +161,7 @@ describe("AnalysisSidebar", () => {
     expect(screen.queryByText("inactive.ts")).toBeNull();
   });
 
-  it("clicking a file row calls scrollIntoView on the file card", () => {
+  it("clicking a file row calls scrollIntoView on the file card", async () => {
     const cluster = makeCluster({
       id: "c1",
       name: "Auth refactor",
@@ -178,6 +178,10 @@ describe("AnalysisSidebar", () => {
     render(<AnalysisSidebar clusters={[cluster]} />);
     const fileRow = screen.getByText("auth.ts");
     fireEvent.click(fileRow);
+
+    // scrollIntoView is deferred to requestAnimationFrame so the lazy-mounted
+    // diff has time to render before we measure it.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
     expect(scrollMock).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
     document.body.removeChild(el);

@@ -2,14 +2,53 @@ import type { LLMClient } from "../llm-client.js";
 import type { FileAnalysis } from "../../types.js";
 import { extractJSON } from "./extract-json.js";
 
+// Prepends each diff body line with its new-file line number so the model
+// doesn't have to count lines itself. Without this, Claude hallucinates
+// line numbers past the end of the file.
+export function annotatePatchWithLineNumbers(patch: string): string {
+  const lines = patch.split("\n");
+  const out: string[] = [];
+  const hunkHeader = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+  let nextNew = 0;
+  let inHunk = false;
+
+  for (const line of lines) {
+    const m = hunkHeader.exec(line);
+    if (m) {
+      nextNew = parseInt(m[1], 10);
+      inHunk = true;
+      out.push(`         ${line}`);
+      continue;
+    }
+    if (!inHunk) {
+      out.push(`         ${line}`);
+      continue;
+    }
+    const first = line.charAt(0);
+    if (first === "+") {
+      out.push(`${String(nextNew).padStart(6, " ")}   ${line}`);
+      nextNew++;
+    } else if (first === "-") {
+      out.push(`         ${line}`);
+    } else if (first === " ") {
+      out.push(`${String(nextNew).padStart(6, " ")}   ${line}`);
+      nextNew++;
+    } else {
+      out.push(`         ${line}`);
+    }
+  }
+  return out.join("\n");
+}
+
 export function buildFileAnalyzerPrompt(filename: string, patch: string): string {
+  const numbered = annotatePatchWithLineNumbers(patch);
   return `Analyze this file diff from a pull request.
 
 File: ${filename}
 
-Diff:
+Diff (each line is prefixed with its line number in the NEW file; deletions have no number):
 \`\`\`
-${patch}
+${numbered}
 \`\`\`
 
 Respond with JSON only — no markdown fences, no commentary. Use this exact schema:
@@ -27,6 +66,12 @@ Respond with JSON only — no markdown fences, no commentary. Use this exact sch
     }
   ]
 }
+
+Rules for lineStart / lineEnd:
+- Use the line numbers shown in the left gutter of the diff above.
+- These refer to lines in the NEW file (the "+"/context lines).
+- Never reference a line number that does not appear in the gutter.
+- If an issue applies to a deleted line, anchor the annotation to the nearest surrounding new-file line instead.
 
 Category guide:
 - logic: behavioral changes, new features, bug fixes, algorithm changes

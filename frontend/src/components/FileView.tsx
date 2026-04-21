@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { ChangeCluster, FileAnalysis } from "../types.js";
 import DiffViewer from "./DiffViewer.js";
+import FileImpactChart from "./FileImpactChart.js";
 import { viewedStore } from "../state/viewedStore.js";
 import { activeFileStore } from "../state/activeFileStore.js";
 import { useViewed } from "../hooks/useViewed.js";
@@ -15,12 +16,47 @@ export default function FileView({ cluster, file }: Props) {
   useViewed(); // subscribe to re-render on viewed state changes
   const filter = useAnnotationFilter();
   const [viewType, setViewType] = useState<"unified" | "split">("unified");
+  const [isMounted, setIsMounted] = useState(false);
 
   const viewed = viewedStore.isViewed(cluster.id, file.path);
   const fileId = `file-${cluster.id}-${encodeURIComponent(file.path)}`;
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
   const autoViewedRef = useRef(false);
+
+  // Lazy-mount the diff body only when the file is near the viewport, so
+  // parseDiff + tokenize don't run for every file in the cluster at once.
+  useEffect(() => {
+    if (isMounted) return;
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsMounted(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "1200px 0px 1200px 0px" },
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [isMounted]);
+
+  // Force-mount when another component (e.g. the sidebar) jumps to this file.
+  useEffect(() => {
+    if (isMounted) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { clusterId: string; path: string } | undefined;
+      if (detail && detail.clusterId === cluster.id && detail.path === file.path) {
+        setIsMounted(true);
+      }
+    };
+    window.addEventListener("pr-triage:mount-file", handler);
+    return () => window.removeEventListener("pr-triage:mount-file", handler);
+  }, [isMounted, cluster.id, file.path]);
 
   // Sync autoViewedRef when already viewed (e.g. loaded from persisted store)
   useEffect(() => {
@@ -65,6 +101,14 @@ export default function FileView({ cluster, file }: Props) {
     return () => observer.disconnect();
   }, [cluster.id, file.path]);
 
+  let additions = 0;
+  let deletions = 0;
+  for (const line of file.diff.split("\n")) {
+    if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) continue;
+    if (line.startsWith("+")) additions++;
+    else if (line.startsWith("-")) deletions++;
+  }
+
   const toggleViewed = () => {
     if (viewed) {
       autoViewedRef.current = false;
@@ -83,10 +127,12 @@ export default function FileView({ cluster, file }: Props) {
     >
       <div className="file-view__header">
         <span className="file-view__path">{file.path}</span>
-        <span className="file-view__meta">
-          {file.category} · impact {file.impactScore}/5
-          {file.annotations.length > 0 && ` · ${file.annotations.length} annotation${file.annotations.length === 1 ? "" : "s"}`}
+        <span className="file-view__meta">{file.category}</span>
+        <span className="file-view__diffstat" aria-label={`${additions} added, ${deletions} removed`}>
+          <span className="file-view__diffstat-add">+{additions}</span>
+          <span className="file-view__diffstat-del">−{deletions}</span>
         </span>
+        <FileImpactChart file={file} />
         <label className="file-view__view-type-toggle">
           <input
             type="checkbox"
@@ -108,7 +154,13 @@ export default function FileView({ cluster, file }: Props) {
       </div>
 
       <div className="file-view__body">
-        <DiffViewer clusterId={cluster.id} file={file} filter={filter} viewType={viewType} />
+        {isMounted ? (
+          <DiffViewer clusterId={cluster.id} file={file} filter={filter} viewType={viewType} />
+        ) : (
+          <div className="file-view__placeholder" aria-hidden="true">
+            Loading diff…
+          </div>
+        )}
       </div>
 
       {/* Bottom sentinel: observed to fire markViewed when user scrolls past this file */}

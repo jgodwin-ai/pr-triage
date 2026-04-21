@@ -1,6 +1,7 @@
 import type { LLMClient } from "../llm-client.js";
 import type { FileAnalysis, ChangeCluster } from "../../types.js";
 import { extractJSON } from "./extract-json.js";
+import { deriveTag } from "./derive-tag.js";
 
 export function buildClusteringPrompt(files: FileAnalysis[]): string {
   const fileSummaries = files
@@ -22,7 +23,6 @@ Respond with JSON only — no markdown fences, no commentary. Use this exact sch
       "id": "short-kebab-id",
       "name": "Human readable cluster name",
       "summary": "2-3 sentences explaining what this group of changes does together",
-      "tag": "needs-review" | "low-risk" | "boilerplate" | "style-only",
       "priority": <number, 1=highest priority for reviewer>,
       "filePaths": ["path/to/file1.ts", "path/to/file2.ts"]
     }
@@ -32,11 +32,6 @@ Respond with JSON only — no markdown fences, no commentary. Use this exact sch
 Clustering guidelines:
 - Group files that work together to accomplish one logical change
 - A file should appear in exactly one cluster
-- Tag clusters based on the highest-impact file in the group
-- "needs-review" = contains logic changes that could introduce bugs
-- "low-risk" = config, docs, or simple changes unlikely to break anything
-- "boilerplate" = generated or repetitive code
-- "style-only" = formatting, naming, no behavior change
 - Priority 1 = most important for reviewer, higher numbers = less important`;
 }
 
@@ -50,14 +45,19 @@ export async function clusterFiles(
   const filesByPath = new Map(files.map((f) => [f.path, f]));
 
   return parsed.clusters.map(
-    (c: { id: string; name: string; summary: string; tag: string; priority: number; filePaths: string[] }) => ({
-      id: c.id,
-      name: c.name,
-      summary: c.summary,
-      tag: c.tag as ChangeCluster["tag"],
-      priority: c.priority,
-      files: c.filePaths.map((p: string) => filesByPath.get(p)).filter(Boolean) as FileAnalysis[],
-      insights: [],
-    })
+    (c: { id: string; name: string; summary: string; priority: number; filePaths: string[] }) => {
+      const clusterFiles = c.filePaths
+        .map((p: string) => filesByPath.get(p))
+        .filter(Boolean) as FileAnalysis[];
+      return {
+        id: c.id,
+        name: c.name,
+        summary: c.summary,
+        tag: deriveTag(clusterFiles),
+        priority: c.priority,
+        files: clusterFiles,
+        insights: [],
+      };
+    }
   );
 }

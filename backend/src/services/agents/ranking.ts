@@ -36,8 +36,7 @@ Respond with JSON only — no markdown fences, no commentary. Use this exact sch
   "clusterUpdates": [
     {
       "id": "cluster-id",
-      "priority": <final rank, 1=most important>,
-      "tag": "needs-review" | "low-risk" | "boilerplate" | "style-only"
+      "priority": <final rank, 1=most important>
     }
   ]
 }
@@ -69,7 +68,6 @@ export async function rankAndSynthesize(
     updatedClusters.push({
       ...original,
       priority: update.priority,
-      tag: update.tag as ChangeCluster["tag"],
     });
   }
 

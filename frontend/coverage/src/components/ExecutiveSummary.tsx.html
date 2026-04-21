@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>17/17</span>
+                <span class='fraction'>19/19</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>17/17</span>
+                <span class='fraction'>19/19</span>
             </div>
         
             
@@ -89,32 +89,36 @@
 <a name='L24'></a><a href='#L24'>24</a>
 <a name='L25'></a><a href='#L25'>25</a>
 <a name='L26'></a><a href='#L26'>26</a>
-<a name='L27'></a><a href='#L27'>27</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">14x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">49x</span>
+<span class="cline-any cline-yes">48x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">49x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">14x</span>
+<span class="cline-any cline-yes">49x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { PRAnalysis } from "../types.js";
 &nbsp;
 interface Props {
@@ -125,18 +129,20 @@ export default function ExecutiveSummary({ analysis }: Props) {
   const { pr, executiveSummary, timeSaved } = analysis;
 &nbsp;
   return (
-    &lt;div style={{ marginBottom: 24 }}&gt;
+    &lt;div className="executive-summary"&gt;
       &lt;h2&gt;{pr.title}&lt;/h2&gt;
-      &lt;p style={{ color: "#666", fontSize: 14 }}&gt;
-        by {pr.author} · {pr.baseBranch} ← {pr.headBranch} ·{" "}
-        &lt;span style={{ color: "green" }}&gt;+{pr.additions}&lt;/span&gt;{" "}
-        &lt;span style={{ color: "red" }}&gt;-{pr.deletions}&lt;/span&gt; across {pr.fileCount} files
-      &lt;/p&gt;
-      &lt;p&gt;{executiveSummary}&lt;/p&gt;
+      &lt;div className="pr-meta"&gt;
+        &lt;span&gt;by {pr.author}&lt;/span&gt;
+        &lt;span&gt;·&lt;/span&gt;
+        &lt;span&gt;{pr.baseBranch} ← {pr.headBranch}&lt;/span&gt;
+        &lt;span&gt;·&lt;/span&gt;
+        &lt;span className="additions"&gt;+{pr.additions}&lt;/span&gt;
+        &lt;span className="deletions"&gt;-{pr.deletions}&lt;/span&gt;
+        &lt;span&gt;across {pr.fileCount} files&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;p className="summary-text"&gt;{executiveSummary}&lt;/p&gt;
       {timeSaved &amp;&amp; (
-        &lt;p style={{ fontSize: 14, color: "#666" }}&gt;
-          Estimated time saved: {timeSaved}
-        &lt;/p&gt;
+        &lt;span className="time-saved"&gt;Estimated time saved: {timeSaved}&lt;/span&gt;
       )}
     &lt;/div&gt;
   );
@@ -148,7 +154,7 @@ export default function ExecutiveSummary({ analysis }: Props) {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-03T23:13:27.664Z
+                at 2026-04-21T22:25:13.425Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

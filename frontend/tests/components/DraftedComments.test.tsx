@@ -110,7 +110,7 @@ describe("DraftedComments", () => {
     // scrollIntoView called after 50ms setTimeout
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        expect(scrollMock).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+        expect(scrollMock).toHaveBeenCalledWith({ behavior: "smooth", block: "center" });
         document.body.removeChild(el);
         resolve();
       }, 100);

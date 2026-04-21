@@ -5,6 +5,7 @@ import { activeClusterStore } from "../state/activeClusterStore.js";
 import { useViewed } from "../hooks/useViewed.js";
 import { useActiveCluster } from "../hooks/useActiveCluster.js";
 import { useReviewDraft } from "../hooks/useReviewDraft.js";
+import FileImpactChart from "./FileImpactChart.js";
 
 interface Props {
   clusters: ChangeCluster[];
@@ -23,11 +24,19 @@ function SidebarFile({ cluster, file, commentCount }: SidebarFileProps) {
 
   const handleClick = () => {
     const id = `file-${cluster.id}-${encodeURIComponent(file.path)}`;
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    el.classList.add("is-jump-target");
-    setTimeout(() => el.classList.remove("is-jump-target"), 1500);
+    window.dispatchEvent(
+      new CustomEvent("pr-triage:mount-file", {
+        detail: { clusterId: cluster.id, path: file.path },
+      }),
+    );
+    // Give the diff a frame to mount so scrollIntoView targets the right height.
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.classList.add("is-jump-target");
+      setTimeout(() => el.classList.remove("is-jump-target"), 1500);
+    });
   };
 
   const toggleViewed = (e: React.MouseEvent) => {
@@ -67,13 +76,11 @@ function SidebarFile({ cluster, file, commentCount }: SidebarFileProps) {
       />
       <span className="sidebar-file__path" title={file.path}>{basename(file.path)}</span>
       <span className="sidebar-file__badges">
-        {file.annotations.length > 0 && (
-          <span className="sidebar-file__badge sidebar-file__badge--warn">{file.annotations.length}</span>
-        )}
         {commentCount > 0 && (
           <span className="sidebar-file__badge sidebar-file__badge--comment">{commentCount}</span>
         )}
       </span>
+      <FileImpactChart file={file} />
     </li>
   );
 }
@@ -153,14 +160,16 @@ export default function AnalysisSidebar({ clusters, style }: Props) {
             </div>
             {isActive && (
               <ul className="sidebar-cluster__files">
-                {cluster.files.map((file) => (
-                  <SidebarFile
-                    key={file.path}
-                    cluster={cluster}
-                    file={file}
-                    commentCount={commentCountMap.get(`${cluster.id}:${file.path}`) ?? 0}
-                  />
-                ))}
+                {[...cluster.files]
+                  .sort((a, b) => b.impactScore - a.impactScore)
+                  .map((file) => (
+                    <SidebarFile
+                      key={file.path}
+                      cluster={cluster}
+                      file={file}
+                      commentCount={commentCountMap.get(`${cluster.id}:${file.path}`) ?? 0}
+                    />
+                  ))}
               </ul>
             )}
           </div>

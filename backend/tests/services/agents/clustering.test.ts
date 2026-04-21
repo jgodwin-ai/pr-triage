@@ -70,6 +70,9 @@ describe("clusterFiles", () => {
     expect(result[0].files).toHaveLength(2);
     expect(result[0].files[0].path).toBe("src/auth/login.ts");
     expect(result[1].files).toHaveLength(1);
+    // Tag is derived from files, not taken from LLM output
+    expect(result[0].tag).toBe("needs-review"); // max impact 4
+    expect(result[1].tag).toBe("low-risk"); // docs only, impact 1
   });
 
   it("drops filePaths that don't match any input file", async () => {
