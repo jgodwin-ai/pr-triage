@@ -1,14 +1,17 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useSyncExternalStore } from "react";
 import type { PRAnalysis } from "../types.js";
 import AnalysisSidebar from "./AnalysisSidebar.js";
 import FileView from "./FileView.js";
 import RightRail from "./RightRail.js";
 import ResizeHandle from "./ResizeHandle.js";
 import AnnotationFilterBar from "./AnnotationFilterBar.js";
+import StackReloadBanner from "./StackReloadBanner.js";
+import TimelineRail from "./TimelineRail.js";
 import { reviewDraftStore } from "../state/reviewDraft.js";
 import { viewedStore } from "../state/viewedStore.js";
 import { activeClusterStore } from "../state/activeClusterStore.js";
 import { activeFileStore } from "../state/activeFileStore.js";
+import { stackStore, type StackSnapshot } from "../state/stack.js";
 import { useActiveCluster } from "../hooks/useActiveCluster.js";
 import { useAnnotationFilter } from "../hooks/useAnnotationFilter.js";
 import { annotationFilterStore } from "../state/annotationFilterStore.js";
@@ -39,11 +42,34 @@ function loadWidths(): { leftW: number; rightW: number } {
   return { leftW: 280, rightW: 360 };
 }
 
-interface Props { analysis: PRAnalysis; onBack: () => void; }
+interface Props {
+  analysis: PRAnalysis;
+  onBack: () => void;
+  /**
+   * Optional callback invoked when the user clicks "Reload stack" on the
+   * head-drift banner. Receives the PR URL so the caller can refetch.
+   */
+  onReloadStack?: (prUrl: string) => void;
+}
 
-export default function AnalysisView({ analysis, onBack }: Props) {
+export default function AnalysisView({ analysis: propAnalysis, onBack, onReloadStack }: Props) {
   const activeClusterId = useActiveCluster();
   const filter = useAnnotationFilter();
+
+  // Resolve which analysis to render. When a stack is loaded, prefer the
+  // selected level's analysis (per-level rendering); otherwise fall back to
+  // the prop-passed analysis (legacy single-PR flow). The prop also acts as
+  // a fallback while a level is still pending/analyzing.
+  const stackSnapshot = useSyncExternalStore<StackSnapshot>(
+    (l) => stackStore.subscribe(l),
+    () => stackStore.snapshot(),
+    () => stackStore.snapshot(),
+  );
+  const levelAnalysis =
+    stackSnapshot.selectedSha != null
+      ? stackStore.levelAnalysis(stackSnapshot.selectedSha)
+      : undefined;
+  const analysis: PRAnalysis = levelAnalysis ?? propAnalysis;
 
   const initial = loadWidths();
   const [leftW, setLeftW] = useState(initial.leftW);
@@ -105,6 +131,7 @@ export default function AnalysisView({ analysis, onBack }: Props) {
 
   return (
     <div className="analysis-shell">
+      <TimelineRail />
       <AnalysisSidebar clusters={analysis.clusters} style={{ width: leftW }} />
       <ResizeHandle
         onDragStart={() => { leftSnap.current = leftW; rightSnap.current = rightW; }}
@@ -112,6 +139,11 @@ export default function AnalysisView({ analysis, onBack }: Props) {
       />
       <main className="analysis-main">
         <div className="analysis-main__scroll">
+          <StackReloadBanner
+            prUrl={analysis.pr.url}
+            analysisHeadSha={analysis.pr.headSha}
+            onReload={onReloadStack ?? (() => {})}
+          />
           <button className="btn-link" style={{ paddingTop: "8px" }} onClick={onBack}>← Analyze another PR</button>
           {activeCluster && [...activeCluster.files]
             .sort((a, b) => b.impactScore - a.impactScore)

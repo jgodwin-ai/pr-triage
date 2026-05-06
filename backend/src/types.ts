@@ -53,12 +53,17 @@ export type AnalysisStage =
   | "error";
 
 export interface WSMessage {
-  type: "status" | "partial" | "complete" | "error";
+  type: "status" | "partial" | "complete" | "error" | "levelReady" | "levelError";
   stage?: AnalysisStage;
   progress?: string;
   clusters?: ChangeCluster[];
   analysis?: PRAnalysis;
   error?: string;
+  /**
+   * Per-commit (stacked-PR) WS event fields. Set on `levelReady` / `levelError`
+   * events emitted as each commit-level pipeline finishes.
+   */
+  sha?: string;
 }
 
 export interface AnalyzeRequest {
@@ -79,6 +84,13 @@ export interface ReviewComment {
   body: string;
   createdAt: number;
   stale?: boolean;
+  /**
+   * SHA the comment was authored against. For per-commit (stacked-PR) reviews
+   * this anchors the inline comment to that specific commit so it survives
+   * later rewrites of the same line. Optional — falls back to PR head SHA on
+   * the backend for back-compat with single-PR callers.
+   */
+  commit_id?: string;
 }
 
 export interface ReviewDraft {

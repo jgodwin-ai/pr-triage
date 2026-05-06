@@ -52,5 +52,46 @@ describe("AnalysisCache", () => {
     expect(await c.get("https://github.com/x/y/pull/1", "abc123")).toBeNull();
   });
 
+  it("keyFor includes both prUrl identity and the commit sha", async () => {
+    const c = new AnalysisCache(dir);
+    const k1 = c.keyFor("https://github.com/x/y/pull/1", "abc123");
+    const k2 = c.keyFor("https://github.com/x/y/pull/1", "def456");
+    const k3 = c.keyFor("https://github.com/x/y/pull/2", "abc123");
+    // Different commit SHAs on the same PR ⇒ different keys (per-commit cache)
+    expect(k1).not.toBe(k2);
+    // Different PRs ⇒ different keys
+    expect(k1).not.toBe(k3);
+    // Both keys include the SHA fragment so per-commit lookups stay isolated
+    expect(k1).toContain("abc123");
+    expect(k2).toContain("def456");
+  });
+
+  it("per-commit caching: intermediate commit SHAs (not just PR head) round-trip cleanly", async () => {
+    const c = new AnalysisCache(dir);
+    const prUrl = "https://github.com/x/y/pull/9";
+    // Simulate a 3-commit stack: cache analysis for each commit independently
+    await c.set(prUrl, "sha-c1", mkAnalysis({ executiveSummary: "commit 1" }));
+    await c.set(prUrl, "sha-c2", mkAnalysis({ executiveSummary: "commit 2" }));
+    await c.set(prUrl, "sha-c3", mkAnalysis({ executiveSummary: "commit 3 (head)" }));
+
+    expect((await c.get(prUrl, "sha-c1"))?.executiveSummary).toBe("commit 1");
+    expect((await c.get(prUrl, "sha-c2"))?.executiveSummary).toBe("commit 2");
+    expect((await c.get(prUrl, "sha-c3"))?.executiveSummary).toBe("commit 3 (head)");
+    // A SHA we never cached must still miss
+    expect(await c.get(prUrl, "sha-unknown")).toBeNull();
+  });
+
+  it("single-PR callers passing head SHA keep the legacy round-trip working", async () => {
+    // Back-compat: the single-PR /api/analyze flow caches by (prUrl, headSha)
+    // which is the head-commit SHA. That call site MUST keep working unchanged.
+    const c = new AnalysisCache(dir);
+    const prUrl = "https://github.com/x/y/pull/42";
+    const headSha = "headsha000";
+    const a = mkAnalysis({ executiveSummary: "single-pr roundtrip" });
+    await c.set(prUrl, headSha, a);
+    const got = await c.get(prUrl, headSha);
+    expect(got?.executiveSummary).toBe("single-pr roundtrip");
+  });
+
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 });
