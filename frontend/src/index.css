@@ -678,3 +678,104 @@ body {
 
 /* Sidebar cluster file list (expanded active cluster) */
 .sidebar-cluster__files { list-style: none; padding: 0; margin: 0; }
+
+/* Timeline Rail (virtual stack navigator) */
+.timeline-rail {
+  width: 48px;
+  flex: 0 0 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px 4px;
+  background: #f6f8fa;
+  border-right: 1px solid #d1d9e0;
+  overflow-y: auto;
+}
+
+.timeline-rail__node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  background: white;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  color: #1f2328;
+  text-align: center;
+  user-select: none;
+}
+.timeline-rail__node:hover { background: #f6f8fa; }
+.timeline-rail__node.is-selected {
+  background: #ddf4ff;
+  border-color: #0969da;
+  border-width: 2px;
+  padding: 5px 1px; /* compensate for thicker border */
+  box-shadow: 0 0 0 1px #0969da inset;
+}
+.timeline-rail__node.is-dimmed { opacity: 0.55; }
+
+.timeline-rail__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8c959f;
+  display: inline-block;
+}
+.timeline-rail__dot--pending { background: #8c959f; }
+.timeline-rail__dot--ready { background: #1a7f37; }
+.timeline-rail__dot--error { background: #cf222e; }
+.timeline-rail__dot--analyzing {
+  background: #bf8700;
+  animation: timeline-rail-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes timeline-rail-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.7); }
+}
+
+.timeline-rail__sha {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  color: #57606a;
+  letter-spacing: 0.02em;
+}
+
+.timeline-rail__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #0969da;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+.timeline-rail__expander {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 2px;
+  background: transparent;
+  border: 1px dashed #d1d9e0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #57606a;
+  font: inherit;
+}
+.timeline-rail__expander:hover { background: #eaeef2; color: #1f2328; }
+.timeline-rail__expander.is-open { background: #eaeef2; }
+.timeline-rail__expander-caret { font-size: 10px; line-height: 1; }
+.timeline-rail__expander-count { font-size: 10px; }
