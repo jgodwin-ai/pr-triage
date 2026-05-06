@@ -81,3 +81,26 @@ export interface ReviewDraft {
   event: "COMMENT" | "APPROVE" | "REQUEST_CHANGES";
   summary: string;
 }
+
+/**
+ * An inline review comment that GitHub rejected at submit time because the
+ * line/file no longer exists at the anchored commit. Mirrors the backend
+ * `OrphanComment` shape from `backend/src/services/github-review.ts`.
+ */
+export interface OrphanedComment {
+  commit_id: string;
+  path: string;
+  line: number;
+  body: string;
+  /** Human-readable reason returned by the backend (best-effort GitHub 422 text). */
+  reason: string;
+}
+
+/** Response shape for POST /api/review. */
+export interface SubmitReviewResponse {
+  reviewId: number;
+  htmlUrl: string;
+  submitted: number;
+  orphans: OrphanedComment[];
+  partial: boolean;
+}
