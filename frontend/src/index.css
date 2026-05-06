@@ -448,6 +448,11 @@ body {
 .comment-box__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
 .btn-link { background: none; border: none; color: #0969da; cursor: pointer; padding: 0; font: inherit; font-size: 13px; }
 .btn-link:hover { text-decoration: underline; }
+
+/* Phase 1.7: Stack reload banner (PR head drift) */
+.stack-reload-banner { display: flex; align-items: center; gap: 12px; margin: 12px 0; padding: 8px 12px; background: #fff8c5; border: 1px solid #d4a72c; border-radius: 6px; font-size: 13px; }
+.stack-reload-banner__message { color: #57606a; }
+.stack-reload-banner__action { font-weight: 600; }
 .comment { background: #f6f8fa; border-left: 3px solid #0969da; padding: 8px 12px; margin: 6px 0; border-radius: 0 4px 4px 0; }
 .comment p { margin: 0; font-size: 13px; }
 .comment__actions { display: flex; gap: 8px; margin-top: 4px; }

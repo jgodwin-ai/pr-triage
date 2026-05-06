@@ -5,6 +5,7 @@ import FileView from "./FileView.js";
 import RightRail from "./RightRail.js";
 import ResizeHandle from "./ResizeHandle.js";
 import AnnotationFilterBar from "./AnnotationFilterBar.js";
+import StackReloadBanner from "./StackReloadBanner.js";
 import { reviewDraftStore } from "../state/reviewDraft.js";
 import { viewedStore } from "../state/viewedStore.js";
 import { activeClusterStore } from "../state/activeClusterStore.js";
@@ -39,9 +40,17 @@ function loadWidths(): { leftW: number; rightW: number } {
   return { leftW: 280, rightW: 360 };
 }
 
-interface Props { analysis: PRAnalysis; onBack: () => void; }
+interface Props {
+  analysis: PRAnalysis;
+  onBack: () => void;
+  /**
+   * Optional callback invoked when the user clicks "Reload stack" on the
+   * head-drift banner. Receives the PR URL so the caller can refetch.
+   */
+  onReloadStack?: (prUrl: string) => void;
+}
 
-export default function AnalysisView({ analysis, onBack }: Props) {
+export default function AnalysisView({ analysis, onBack, onReloadStack }: Props) {
   const activeClusterId = useActiveCluster();
   const filter = useAnnotationFilter();
 
@@ -112,6 +121,11 @@ export default function AnalysisView({ analysis, onBack }: Props) {
       />
       <main className="analysis-main">
         <div className="analysis-main__scroll">
+          <StackReloadBanner
+            prUrl={analysis.pr.url}
+            analysisHeadSha={analysis.pr.headSha}
+            onReload={onReloadStack ?? (() => {})}
+          />
           <button className="btn-link" style={{ paddingTop: "8px" }} onClick={onBack}>← Analyze another PR</button>
           {activeCluster && [...activeCluster.files]
             .sort((a, b) => b.impactScore - a.impactScore)
