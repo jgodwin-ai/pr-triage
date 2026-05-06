@@ -19,30 +19,50 @@ function parseUrlParts(prUrl: string): { owner: string; repo: string; number: st
   return { owner: m[1], repo: m[2], number: m[3] };
 }
 
+/**
+ * Filesystem-backed cache of completed `PRAnalysis` results, keyed by
+ * `(prUrl, commitSha)`.
+ *
+ * The conceptual cache key is `${prUrl}#${commitSha}` — one entry per
+ * (PR, commit) pair. This shape supports both:
+ *   - the single-PR `/api/analyze` flow, which passes the PR head SHA
+ *     as `commitSha` (legacy back-compat — same as before Phase 1.7);
+ *   - the stacked-PR flow (Phase 1.7), which caches each commit-level
+ *     analysis under that commit's SHA so revisits are instant.
+ *
+ * On disk the key is sanitized to `<owner>_<repo>_<number>_<sha>` so it
+ * survives as a filename across platforms.
+ */
 export class AnalysisCache {
   constructor(private dir: string) {}
 
-  keyFor(prUrl: string, headSha: string): string {
+  /**
+   * Build the on-disk key for a `(prUrl, commitSha)` pair.
+   *
+   * `commitSha` may be the PR head SHA (single-PR flow) or any
+   * commit SHA in the PR's history (stacked-PR flow).
+   */
+  keyFor(prUrl: string, commitSha: string): string {
     const { owner, repo, number } = parseUrlParts(prUrl);
-    return `${sanitize(owner)}_${sanitize(repo)}_${number}_${sanitize(headSha)}`;
+    return `${sanitize(owner)}_${sanitize(repo)}_${number}_${sanitize(commitSha)}`;
   }
 
-  private pathFor(prUrl: string, headSha: string): string {
-    return path.join(this.dir, this.keyFor(prUrl, headSha) + ".json");
+  private pathFor(prUrl: string, commitSha: string): string {
+    return path.join(this.dir, this.keyFor(prUrl, commitSha) + ".json");
   }
 
-  async get(prUrl: string, headSha: string): Promise<PRAnalysis | null> {
+  async get(prUrl: string, commitSha: string): Promise<PRAnalysis | null> {
     try {
-      const buf = await readFile(this.pathFor(prUrl, headSha), "utf8");
+      const buf = await readFile(this.pathFor(prUrl, commitSha), "utf8");
       return JSON.parse(buf) as PRAnalysis;
     } catch {
       return null;
     }
   }
 
-  async set(prUrl: string, headSha: string, analysis: PRAnalysis): Promise<void> {
+  async set(prUrl: string, commitSha: string, analysis: PRAnalysis): Promise<void> {
     await mkdir(this.dir, { recursive: true });
-    await writeFile(this.pathFor(prUrl, headSha), JSON.stringify(analysis, null, 2), "utf8");
+    await writeFile(this.pathFor(prUrl, commitSha), JSON.stringify(analysis, null, 2), "utf8");
   }
 
   async list(): Promise<CachedAnalysisSummary[]> {
