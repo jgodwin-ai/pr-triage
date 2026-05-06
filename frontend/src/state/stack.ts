@@ -20,6 +20,13 @@ export interface StackSnapshot {
   prUrl: string | null;
   levels: Level[];
   selectedSha: string | null;
+  /**
+   * Most recently observed head SHA from the GitHub PR, regardless of which
+   * SHA the currently-displayed analysis was built against. Set by code that
+   * fetches PR data; the reload banner compares this against the analysis's
+   * headSha to surface drift.
+   */
+  latestKnownHeadSha: string | null;
 }
 
 type Listener = (snapshot: StackSnapshot) => void;
@@ -49,14 +56,20 @@ function persistSelected(prUrl: string, sha: string | null): void {
   }
 }
 
+const initialState: StackSnapshot = {
+  prUrl: null,
+  levels: [],
+  selectedSha: null,
+  latestKnownHeadSha: null,
+};
+
 function createStackStore() {
-  let state: StackSnapshot = { prUrl: null, levels: [], selectedSha: null };
+  let state: StackSnapshot = initialState;
   const listeners = new Set<Listener>();
   const notify = () => listeners.forEach((l) => l(state));
 
   return {
     setStack(prUrl: string, levels: Level[]): void {
-      // Determine selected sha: persisted value if still in stack, else first level.
       let nextSelected: string | null = null;
       if (levels.length > 0) {
         const persisted = loadPersistedSelected(prUrl);
@@ -66,7 +79,7 @@ function createStackStore() {
           nextSelected = levels[0].sha;
         }
       }
-      state = { prUrl, levels, selectedSha: nextSelected };
+      state = { ...state, prUrl, levels, selectedSha: nextSelected };
       notify();
     },
 
@@ -99,6 +112,12 @@ function createStackStore() {
       notify();
     },
 
+    setLatestKnownHeadSha(sha: string | null): void {
+      if (state.latestKnownHeadSha === sha) return;
+      state = { ...state, latestKnownHeadSha: sha };
+      notify();
+    },
+
     snapshot(): StackSnapshot {
       return state;
     },
@@ -106,6 +125,12 @@ function createStackStore() {
     subscribe(l: Listener): () => void {
       listeners.add(l);
       return () => listeners.delete(l);
+    },
+
+    /** Test-only reset. */
+    _resetForTest(): void {
+      state = initialState;
+      notify();
     },
   };
 }
