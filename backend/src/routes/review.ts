@@ -28,7 +28,13 @@ router.post("/", async (req, res) => {
       { prUrl, summary: summary ?? "", event: event ?? "COMMENT", comments: comments ?? [] },
       token,
     );
-    res.json({ reviewId: result.id, htmlUrl: result.htmlUrl });
+    res.json({
+      reviewId: result.id,
+      htmlUrl: result.htmlUrl,
+      submitted: result.submitted,
+      orphans: result.orphans,
+      partial: result.partial,
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message ?? "Failed to submit review" });
   }
