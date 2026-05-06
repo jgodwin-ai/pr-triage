@@ -2,6 +2,8 @@ import { useState } from "react";
 import { reviewDraftStore } from "../state/reviewDraft.js";
 import { useReviewDraft } from "../hooks/useReviewDraft.js";
 import DraftedComments from "./DraftedComments.js";
+import OrphanedCommentDialog from "./OrphanedCommentDialog.js";
+import type { OrphanedComment, SubmitReviewResponse } from "../types.js";
 
 interface Props { prUrl: string; }
 
@@ -25,11 +27,17 @@ function submitLabel(ev: EventValue): string {
   return "Submit review";
 }
 
+function orphanKey(o: OrphanedComment): string {
+  return `${o.commit_id}:${o.path}:${o.line}`;
+}
+
 export default function ReviewSubmitBar({ prUrl }: Props) {
   const draft = useReviewDraft();
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [orphans, setOrphans] = useState<OrphanedComment[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const staleCount = draft.comments.filter((c) => c.stale).length;
 
@@ -51,8 +59,15 @@ export default function ReviewSubmitBar({ prUrl }: Props) {
         try { msg = (await res.json()).error || msg; } catch { /* ignore */ }
         throw new Error(msg);
       }
-      const data = await res.json();
+      const data = (await res.json()) as Partial<SubmitReviewResponse> & {
+        htmlUrl: string;
+      };
       setResult({ url: data.htmlUrl });
+      const returnedOrphans = data.orphans ?? [];
+      if (returnedOrphans.length > 0) {
+        setOrphans(returnedOrphans);
+        setDialogOpen(true);
+      }
       reviewDraftStore.reset();
     } catch (e: any) {
       setError(e.message ?? "Submit failed");
@@ -60,6 +75,60 @@ export default function ReviewSubmitBar({ prUrl }: Props) {
       setSubmitting(false);
     }
   };
+
+  /**
+   * Re-submit a single orphaned comment as a file-level comment (no `line`).
+   * Routed through the existing `/api/review` endpoint with a single
+   * `kind: "file"` comment in the draft. The body retains the original text;
+   * the path is preserved. The backend ultimately surfaces this as part of the
+   * top-level review body (see `splitDraft` in `github-review.ts`).
+   */
+  const promoteOrphan = async (orphan: OrphanedComment) => {
+    try {
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prUrl,
+          summary: "",
+          event: "COMMENT",
+          comments: [
+            {
+              id: `orphan-${orphan.commit_id}-${orphan.path}-${orphan.line}`,
+              target: { kind: "file", clusterId: "orphan", path: orphan.path },
+              body: orphan.body,
+              createdAt: Date.now(),
+            },
+          ],
+        }),
+      });
+      if (!res.ok) {
+        let msg = "Promote failed";
+        try { msg = (await res.json()).error || msg; } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+    } catch (e: any) {
+      setError(e.message ?? "Promote failed");
+    } finally {
+      // Whether or not the network call succeeded, remove the orphan from the
+      // dialog so the user can move on. Errors surface through the error bar.
+      setOrphans((prev) => {
+        const next = prev.filter((o) => orphanKey(o) !== orphanKey(orphan));
+        if (next.length === 0) setDialogOpen(false);
+        return next;
+      });
+    }
+  };
+
+  const dropOrphan = (orphan: OrphanedComment) => {
+    setOrphans((prev) => {
+      const next = prev.filter((o) => orphanKey(o) !== orphanKey(orphan));
+      if (next.length === 0) setDialogOpen(false);
+      return next;
+    });
+  };
+
+  const closeDialog = () => setDialogOpen(false);
 
   return (
     <div className="review-form">
@@ -112,6 +181,14 @@ export default function ReviewSubmitBar({ prUrl }: Props) {
         </div>
       )}
       {error && <div className="error-bar">{error}</div>}
+      {dialogOpen && (
+        <OrphanedCommentDialog
+          orphans={orphans}
+          onPromote={promoteOrphan}
+          onDrop={dropOrphan}
+          onClose={closeDialog}
+        />
+      )}
     </div>
   );
 }
