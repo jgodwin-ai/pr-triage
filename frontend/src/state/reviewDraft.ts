@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import type { ReviewComment, CommentTarget, ReviewDraft } from "../types.js";
+import { stackStore } from "./stack.js";
 
 type Listener = (draft: ReviewDraft) => void;
 
@@ -19,10 +20,47 @@ function draftKey(prUrl: string, headSha: string): string {
 function targetKey(t: CommentTarget): string {
   switch (t.kind) {
     case "cluster": return `cluster:${t.clusterId}`;
-    case "file": return `file:${t.clusterId}:${t.path}`;
-    case "line": return `line:${t.clusterId}:${t.path}:${t.side}:${t.line}`;
-    case "annotation": return `ann:${t.clusterId}:${t.path}:${t.annotationIndex}`;
+    case "file": return `file:${t.commitId ?? ""}:${t.clusterId}:${t.path}`;
+    case "line": return `line:${t.commitId ?? ""}:${t.clusterId}:${t.path}:${t.side}:${t.line}`;
+    case "annotation": return `ann:${t.commitId ?? ""}:${t.clusterId}:${t.path}:${t.annotationIndex}`;
   }
+}
+
+/**
+ * For file/line/annotation kinds, attach a `commitId` to the target so
+ * later operations (key lookup, per-level scoping, submit-time anchoring) can
+ * route the draft to the correct commit. Resolution order:
+ *   1. explicit `commitId` already on the target (caller-supplied) — kept.
+ *   2. `stackStore.snapshot().selectedSha` if a stack is loaded.
+ *   3. `fallbackHeadSha` (the PR head SHA the draft was loaded against) so
+ *      legacy single-PR flows still anchor to a real commit.
+ * Cluster-kind targets are PR-wide and never receive a commitId.
+ */
+/**
+ * Back-compat for drafts authored before JGT-31 added `commitId` to
+ * file/line/annotation targets. When loading a persisted draft, fill in any
+ * missing `commitId` with the SHA the draft was persisted against. Cluster
+ * comments are PR-wide and stay un-attributed.
+ */
+function backfillCommitId(comments: ReviewComment[], fallbackSha: string): ReviewComment[] {
+  if (!fallbackSha) return comments;
+  return comments.map((c) => {
+    if (c.target.kind === "cluster") return c;
+    const t = c.target as { commitId?: string } & CommentTarget;
+    if (t.commitId) return c;
+    const target = { ...t, commitId: fallbackSha } as CommentTarget;
+    return { ...c, target, commit_id: c.commit_id ?? fallbackSha };
+  });
+}
+
+function resolveTargetCommitId(target: CommentTarget, fallbackHeadSha: string): CommentTarget {
+  if (target.kind === "cluster") return target;
+  const existing = (target as { commitId?: string }).commitId;
+  if (existing) return target;
+  const selected = stackStore.snapshot().selectedSha;
+  const commitId = selected ?? fallbackHeadSha;
+  if (!commitId) return target;
+  return { ...target, commitId };
 }
 
 function readManifest(): ManifestEntry[] {
@@ -100,7 +138,18 @@ function createStore() {
     setEvent(event: ReviewDraft["event"]) { draft = { ...draft, event }; notify(); persist(); },
     setSummary(summary: string) { draft = { ...draft, summary }; notify(); persist(); },
     addComment(target: CommentTarget, body: string): ReviewComment {
-      const c: ReviewComment = { id: uuidv4(), target, body, createdAt: Date.now() };
+      const resolvedTarget = resolveTargetCommitId(target, currentHeadSha);
+      const commitId =
+        resolvedTarget.kind === "cluster"
+          ? undefined
+          : (resolvedTarget as { commitId?: string }).commitId;
+      const c: ReviewComment = {
+        id: uuidv4(),
+        target: resolvedTarget,
+        body,
+        createdAt: Date.now(),
+        ...(commitId ? { commit_id: commitId } : {}),
+      };
       draft = { ...draft, comments: [...draft.comments, c] };
       notify();
       persist();
@@ -144,7 +193,7 @@ function createStore() {
       // Try exact match first
       const exact = loadDraft(prUrl, headSha);
       if (exact) {
-        draft = { ...exact, prUrl };
+        draft = { ...exact, prUrl, comments: backfillCommitId(exact.comments, headSha) };
         notify();
         return;
       }
@@ -155,7 +204,9 @@ function createStore() {
       if (staleEntry) {
         const staleDraft = loadDraft(prUrl, staleEntry.headSha);
         if (staleDraft) {
-          const staleComments = staleDraft.comments.map((c) => ({ ...c, stale: true }));
+          // Stale comments belong to the *previous* head SHA — backfill against that.
+          const filled = backfillCommitId(staleDraft.comments, staleEntry.headSha);
+          const staleComments = filled.map((c) => ({ ...c, stale: true }));
           draft = { ...staleDraft, prUrl, comments: staleComments };
           notify();
           return;

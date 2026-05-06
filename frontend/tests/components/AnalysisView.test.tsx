@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import AnalysisView from "../../src/components/AnalysisView.js";
 import { activeClusterStore } from "../../src/state/activeClusterStore.js";
+import { stackStore, type Level } from "../../src/state/stack.js";
 import { makeAnalysis, makeCluster, makeFileAnalysis } from "../helpers.js";
 
 function makeLocalStorageMock() {
@@ -27,12 +28,14 @@ beforeEach(() => {
       disconnect: vi.fn(),
     })),
   );
-  // Reset active cluster between tests
+  // Reset active cluster and stack between tests
   activeClusterStore.set(null);
+  stackStore._resetForTest();
 });
 
 afterEach(() => {
   activeClusterStore.set(null);
+  stackStore._resetForTest();
 });
 
 describe("AnalysisView", () => {
@@ -142,5 +145,93 @@ describe("AnalysisView", () => {
     const reviewTabBtn = screen.getByRole("button", { name: /^review/i });
     fireEvent.click(reviewTabBtn);
     expect(screen.getByText(/finish your review/i)).toBeTruthy();
+  });
+});
+
+function lvl(overrides: Partial<Level> & { sha: string }): Level {
+  return {
+    sha: overrides.sha,
+    shortSha: overrides.shortSha ?? overrides.sha.slice(0, 7),
+    message: overrides.message ?? `commit ${overrides.sha}`,
+    parentSha: overrides.parentSha ?? "0000000",
+    kind: overrides.kind ?? "feature",
+    files: overrides.files ?? [],
+    status: overrides.status ?? "ready",
+    noiseReason: overrides.noiseReason,
+    analysis: overrides.analysis,
+  };
+}
+
+describe("AnalysisView — per-level analysis resolution (JGT-31)", () => {
+  it("renders the selected level's analysis when a stack is loaded", () => {
+    const analysisA = makeAnalysis({
+      id: "level-A",
+      clusters: [
+        makeCluster({
+          id: "ca",
+          name: "Level A cluster",
+          files: [makeFileAnalysis({ path: "a.ts" })],
+        }),
+      ],
+    });
+    const analysisB = makeAnalysis({
+      id: "level-B",
+      clusters: [
+        makeCluster({
+          id: "cb",
+          name: "Level B cluster",
+          files: [makeFileAnalysis({ path: "b.ts" })],
+        }),
+      ],
+    });
+    stackStore.setStack("https://github.com/o/r/pull/1", [
+      lvl({ sha: "shaA0001", analysis: analysisA }),
+      lvl({ sha: "shaB0002", analysis: analysisB }),
+    ]);
+    // setStack auto-selects the first level (shaA).
+    // Pass the prop analysis as level-A's so the legacy prop fallback never matters.
+    render(
+      <AnalysisView analysis={analysisA} onBack={vi.fn()} />,
+    );
+    expect(screen.getByText("Level A cluster")).toBeTruthy();
+    // Switch to level B
+    act(() => {
+      stackStore.setSelected("shaB0002");
+    });
+    expect(screen.getByText("Level B cluster")).toBeTruthy();
+    expect(screen.queryByText("Level A cluster")).toBeNull();
+  });
+
+  it("falls back to prop analysis when no stack is loaded (legacy single-PR flow)", () => {
+    // No stack set; AnalysisView must use the prop analysis.
+    const analysis = makeAnalysis({
+      clusters: [
+        makeCluster({
+          id: "legacy",
+          name: "Legacy single-PR cluster",
+          files: [makeFileAnalysis({ path: "x.ts" })],
+        }),
+      ],
+    });
+    render(<AnalysisView analysis={analysis} onBack={vi.fn()} />);
+    expect(screen.getByText("Legacy single-PR cluster")).toBeTruthy();
+  });
+
+  it("falls back to prop analysis when the selected level has no analysis yet", () => {
+    const propAnalysis = makeAnalysis({
+      clusters: [
+        makeCluster({
+          id: "fallback",
+          name: "Fallback cluster",
+          files: [makeFileAnalysis({ path: "f.ts" })],
+        }),
+      ],
+    });
+    stackStore.setStack("https://github.com/o/r/pull/1", [
+      // No analysis attached yet (status=pending).
+      lvl({ sha: "pendingsha", status: "pending" }),
+    ]);
+    render(<AnalysisView analysis={propAnalysis} onBack={vi.fn()} />);
+    expect(screen.getByText("Fallback cluster")).toBeTruthy();
   });
 });
