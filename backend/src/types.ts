@@ -53,12 +53,17 @@ export type AnalysisStage =
   | "error";
 
 export interface WSMessage {
-  type: "status" | "partial" | "complete" | "error";
+  type: "status" | "partial" | "complete" | "error" | "levelReady" | "levelError";
   stage?: AnalysisStage;
   progress?: string;
   clusters?: ChangeCluster[];
   analysis?: PRAnalysis;
   error?: string;
+  /**
+   * Per-commit (stacked-PR) WS event fields. Set on `levelReady` / `levelError`
+   * events emitted as each commit-level pipeline finishes.
+   */
+  sha?: string;
 }
 
 export interface AnalyzeRequest {
