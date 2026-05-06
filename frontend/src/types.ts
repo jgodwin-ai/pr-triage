@@ -63,9 +63,9 @@ export interface WSMessage {
 
 export type CommentTarget =
   | { kind: "cluster"; clusterId: string }
-  | { kind: "file"; clusterId: string; path: string }
-  | { kind: "line"; clusterId: string; path: string; line: number; side: "LEFT" | "RIGHT" }
-  | { kind: "annotation"; clusterId: string; path: string; annotationIndex: number };
+  | { kind: "file"; clusterId: string; path: string; commitId?: string }
+  | { kind: "line"; clusterId: string; path: string; line: number; side: "LEFT" | "RIGHT"; commitId?: string }
+  | { kind: "annotation"; clusterId: string; path: string; annotationIndex: number; commitId?: string };
 
 export interface ReviewComment {
   id: string;
@@ -73,6 +73,13 @@ export interface ReviewComment {
   body: string;
   createdAt: number;
   stale?: boolean;
+  /**
+   * Commit SHA the comment was authored against. Mirrors `target.commitId`
+   * for the file/line/annotation kinds; cluster-kind comments leave this
+   * undefined since they're PR-wide. Forwarded to the backend's `commit_id`
+   * field at submit time.
+   */
+  commit_id?: string;
 }
 
 export interface ReviewDraft {
