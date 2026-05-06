@@ -11,3 +11,8 @@ dist/
 backend/.cache/
 coverage/
 .nyc_output/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/.playwright/

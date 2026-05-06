@@ -16,5 +16,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     include: ["tests/**/*.test.{ts,tsx}"],
+    // Exclude Playwright E2E specs — they have a different runner/lifecycle.
+    exclude: ["tests/e2e/**", "**/node_modules/**"],
   },
 });
