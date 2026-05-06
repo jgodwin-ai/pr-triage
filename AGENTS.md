@@ -2,6 +2,8 @@
 
 Issues live in the **PR Triager** project on Linear (team `Jgtest123`, prefix `JGT`). Use the `linear-server` MCP tools to read and update them.
 
+See `CLAUDE.md` for the per-issue workflow (pull → comment → branch → PR → in-review) and the preference for subagent-driven execution on multi-task work.
+
 ## Non-Interactive Shell Commands
 
 **ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
