@@ -53,12 +53,17 @@ export type AnalysisStage =
   | "error";
 
 export interface WSMessage {
-  type: "status" | "partial" | "complete" | "error";
+  type: "status" | "partial" | "complete" | "error" | "levelReady" | "levelError";
   stage?: AnalysisStage;
   progress?: string;
   clusters?: ChangeCluster[];
   analysis?: PRAnalysis;
   error?: string;
+  /**
+   * Set on `levelReady` / `levelError` to identify which commit-level the
+   * event belongs to.
+   */
+  sha?: string;
 }
 
 export type CommentTarget =
